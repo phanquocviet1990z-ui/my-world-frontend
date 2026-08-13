@@ -2706,8 +2706,8 @@ function MenuItem({
 /* =====================================================
 AVATAR
 ===================================================== */
-function Avatar({ user }) {
 
+function Avatar({ user }) {
     const rawAvatar =
         user?.avatar ||
         user?.avatar_url ||
@@ -2725,11 +2725,10 @@ function Avatar({ user }) {
         setImageError(false);
     }, [rawAvatar]);
 
-    // Không có avatar
-    if (
-        !rawAvatar ||
-        imageError
-    ) {
+    /*
+     * Không có avatar
+     */
+    if (!rawAvatar || imageError) {
         return (
             <div className="avatar avatar-fallback">
                 👤
@@ -2740,28 +2739,33 @@ function Avatar({ user }) {
     let avatarUrl =
         String(rawAvatar).trim();
 
-    // Backend trả đường dẫn tương đối
-    // /uploads/avatars/abc.jpg
+    /*
+     * Avatar local từ backend:
+     *
+     * /uploads/avatars/avatar-1-xxx.jpg
+     *
+     * phải luôn lấy từ BACKEND Render,
+     * không lấy từ domain frontend.
+     */
     if (
         !avatarUrl.startsWith("http://") &&
         !avatarUrl.startsWith("https://") &&
         !avatarUrl.startsWith("data:") &&
         !avatarUrl.startsWith("blob:")
     ) {
-
-        if (avatarUrl.startsWith("/")) {
-            avatarUrl =
-                `${API_URL}${avatarUrl}`;
-        } else {
-            avatarUrl =
-                `${API_URL}/${avatarUrl}`;
+        if (!avatarUrl.startsWith("/")) {
+            avatarUrl = `/${avatarUrl}`;
         }
+
+        avatarUrl =
+            `${API_URL}${avatarUrl}`;
     }
 
     /*
-     * Chống cache.
+     * Chỉ thêm cache-busting dựa trên URL avatar.
      *
-     * Không dùng rawAvatar làm version nữa.
+     * KHÔNG dùng Date.now() vì Avatar có thể
+     * render lại rất nhiều lần.
      */
     const separator =
         avatarUrl.includes("?")
@@ -2769,12 +2773,9 @@ function Avatar({ user }) {
             : "?";
 
     const finalAvatarUrl =
-        `${avatarUrl}${separator}v=${Date.now()}`;
-
-    console.log(
-        "FINAL AVATAR URL:",
-        finalAvatarUrl
-    );
+        `${avatarUrl}${separator}v=${encodeURIComponent(
+            String(rawAvatar)
+        )}`;
 
     return (
         <img
@@ -2782,11 +2783,10 @@ function Avatar({ user }) {
             src={finalAvatarUrl}
             alt={getUserName(user)}
             referrerPolicy="no-referrer"
-            onError={(event) => {
-
+            onError={() => {
                 console.warn(
                     "AVATAR IMAGE LOAD ERROR:",
-                    event.currentTarget.src
+                    finalAvatarUrl
                 );
 
                 setImageError(true);
