@@ -1,9 +1,109 @@
+import React, {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
-import React, { useEffect, useMemo, useState } from "react";
+/* =========================================================
+   API
+========================================================= */
+
+const API_URL =
+    "https://my-world-backend-3xwn.onrender.com";
+
+/* =========================================================
+   SAFE JSON RESPONSE
+========================================================= */
+
+async function readJsonResponse(response) {
+    const text = await response.text();
+
+    if (!text) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (error) {
+        console.error(
+            "INVALID JSON RESPONSE:",
+            text
+        );
+
+        return null;
+    }
+}
+
+/* =========================================================
+   API ERROR MESSAGE
+========================================================= */
+
+function getResponseErrorMessage(
+    response,
+    data,
+    fallback
+) {
+    if (data?.message) {
+        return data.message;
+    }
+
+    if (response.status === 401) {
+        return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    }
+
+    if (response.status === 403) {
+        return "Bạn không có quyền thực hiện thao tác này.";
+    }
+
+    if (response.status === 404) {
+        return "Không tìm thấy API nhắc việc trên máy chủ.";
+    }
+
+    if (response.status >= 500) {
+        return "Máy chủ đang gặp lỗi. Vui lòng thử lại sau.";
+    }
+
+    return fallback;
+}
+
+/* =========================================================
+   API REQUEST
+========================================================= */
+
+async function reminderRequest(
+    path,
+    options = {}
+) {
+    const response = await fetch(
+        `${API_URL}${path}`,
+        {
+            ...options,
+            credentials: "include",
+            headers: {
+                Accept:
+                    "application/json",
+                ...(options.body
+                    ? {
+                          "Content-Type":
+                              "application/json",
+                      }
+                    : {}),
+                ...(options.headers || {}),
+            },
+        }
+    );
+
+    const data =
+        await readJsonResponse(response);
+
+    return {
+        response,
+        data,
+    };
+}
 
 /* =========================================================
    REMINDERS PAGE
-   Kết nối trực tiếp với /api/reminders
 ========================================================= */
 
 function Reminders() {
@@ -11,21 +111,29 @@ function Reminders() {
        STATE
     ===================================================== */
 
-    const [reminders, setReminders] = useState([]);
+    const [reminders, setReminders] =
+        useState([]);
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] =
+        useState(true);
 
-    const [saving, setSaving] = useState(false);
+    const [saving, setSaving] =
+        useState(false);
 
-    const [actionId, setActionId] = useState(null);
+    const [actionId, setActionId] =
+        useState(null);
 
-    const [error, setError] = useState("");
+    const [error, setError] =
+        useState("");
 
-    const [success, setSuccess] = useState("");
+    const [success, setSuccess] =
+        useState("");
 
-    const [showForm, setShowForm] = useState(false);
+    const [showForm, setShowForm] =
+        useState(false);
 
-    const [editingId, setEditingId] = useState(null);
+    const [editingId, setEditingId] =
+        useState(null);
 
     const [form, setForm] = useState({
         title: "",
@@ -43,29 +151,44 @@ function Reminders() {
             setLoading(true);
             setError("");
 
-            const response = await fetch("/api/reminders", {
-                method: "GET",
-                credentials: "include",
-            });
+            const {
+                response,
+                data,
+            } = await reminderRequest(
+                "/api/reminders",
+                {
+                    method: "GET",
+                }
+            );
 
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
+            if (
+                !response.ok ||
+                !data?.success
+            ) {
                 throw new Error(
-                    data.message || "Không thể tải danh sách nhắc việc."
+                    getResponseErrorMessage(
+                        response,
+                        data,
+                        "Không thể tải danh sách nhắc việc."
+                    )
                 );
             }
 
             setReminders(
-                Array.isArray(data.reminders)
+                Array.isArray(
+                    data.reminders
+                )
                     ? data.reminders
                     : []
             );
         } catch (err) {
-            console.error("LOAD REMINDERS ERROR:", err);
+            console.error(
+                "LOAD REMINDERS ERROR:",
+                err
+            );
 
             setError(
-                err.message ||
+                err?.message ||
                     "Không thể tải danh sách nhắc việc."
             );
         } finally {
@@ -82,17 +205,21 @@ function Reminders() {
     }, []);
 
     /* =====================================================
-       AUTO CLEAR MESSAGE
+       AUTO CLEAR SUCCESS
     ===================================================== */
 
     useEffect(() => {
-        if (!success) return;
+        if (!success) {
+            return;
+        }
 
-        const timer = setTimeout(() => {
-            setSuccess("");
-        }, 3000);
+        const timer =
+            setTimeout(() => {
+                setSuccess("");
+            }, 3000);
 
-        return () => clearTimeout(timer);
+        return () =>
+            clearTimeout(timer);
     }, [success]);
 
     /* =====================================================
@@ -113,7 +240,9 @@ function Reminders() {
     function openCreateForm() {
         setError("");
         setSuccess("");
+
         resetForm();
+
         setShowForm(true);
     }
 
@@ -124,12 +253,20 @@ function Reminders() {
         setEditingId(reminder.id);
 
         setForm({
-            title: reminder.title || "",
-            description: reminder.description || "",
-            remind_at: convertDatabaseDateToInput(
-                reminder.remind_at
-            ),
-            repeat_type: reminder.repeat_type || "none",
+            title:
+                reminder.title || "",
+
+            description:
+                reminder.description || "",
+
+            remind_at:
+                convertDatabaseDateToInput(
+                    reminder.remind_at
+                ),
+
+            repeat_type:
+                reminder.repeat_type ||
+                "none",
         });
 
         setShowForm(true);
@@ -141,13 +278,18 @@ function Reminders() {
     }
 
     function closeForm() {
-        if (saving) return;
+        if (saving) {
+            return;
+        }
 
         setShowForm(false);
+
         resetForm();
     }
 
-    function handleInputChange(event) {
+    function handleInputChange(
+        event
+    ) {
         const {
             name,
             value,
@@ -163,18 +305,22 @@ function Reminders() {
        CREATE / UPDATE
     ===================================================== */
 
-    async function handleSubmit(event) {
+    async function handleSubmit(
+        event
+    ) {
         event.preventDefault();
 
         setError("");
         setSuccess("");
 
-        const title = form.title.trim();
+        const title =
+            form.title.trim();
 
         if (!title) {
             setError(
                 "Vui lòng nhập tiêu đề nhắc việc."
             );
+
             return;
         }
 
@@ -182,6 +328,7 @@ function Reminders() {
             setError(
                 "Vui lòng chọn ngày và giờ nhắc."
             );
+
             return;
         }
 
@@ -199,36 +346,59 @@ function Reminders() {
                 ? "PUT"
                 : "POST";
 
-            const response = await fetch(url, {
-                method,
-                credentials: "include",
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                },
-                body: JSON.stringify({
-                    title,
-                    description:
-                        form.description.trim(),
-                    remind_at:
-                        convertInputToDatabaseDate(
-                            form.remind_at
-                        ),
-                    repeat_type:
-                        form.repeat_type,
-                }),
-            });
+            /*
+             * GIỮ NGUYÊN LOCAL TIME
+             *
+             * Không dùng:
+             *
+             * new Date(
+             *     form.remind_at
+             * ).toISOString()
+             */
 
-            const data =
-                await response.json();
+            const remindAt =
+                convertInputToDatabaseDate(
+                    form.remind_at
+                );
+
+            if (!remindAt) {
+                throw new Error(
+                    "Thời gian nhắc không hợp lệ."
+                );
+            }
+
+            const {
+                response,
+                data,
+            } = await reminderRequest(
+                url,
+                {
+                    method,
+                    body: JSON.stringify({
+                        title,
+
+                        description:
+                            form.description.trim(),
+
+                        remind_at:
+                            remindAt,
+
+                        repeat_type:
+                            form.repeat_type,
+                    }),
+                }
+            );
 
             if (
                 !response.ok ||
-                !data.success
+                !data?.success
             ) {
                 throw new Error(
-                    data.message ||
+                    getResponseErrorMessage(
+                        response,
+                        data,
                         "Không thể lưu nhắc việc."
+                    )
                 );
             }
 
@@ -239,6 +409,7 @@ function Reminders() {
             );
 
             setShowForm(false);
+
             resetForm();
 
             await loadReminders();
@@ -249,7 +420,7 @@ function Reminders() {
             );
 
             setError(
-                err.message ||
+                err?.message ||
                     "Không thể lưu nhắc việc."
             );
         } finally {
@@ -264,32 +435,36 @@ function Reminders() {
     async function completeReminder(
         reminder
     ) {
-        if (!reminder?.id) return;
+        if (!reminder?.id) {
+            return;
+        }
 
         try {
             setActionId(reminder.id);
+
             setError("");
             setSuccess("");
 
-            const response =
-                await fetch(
-                    `/api/reminders/${reminder.id}/complete`,
-                    {
-                        method: "PATCH",
-                        credentials: "include",
-                    }
-                );
-
-            const data =
-                await response.json();
+            const {
+                response,
+                data,
+            } = await reminderRequest(
+                `/api/reminders/${reminder.id}/complete`,
+                {
+                    method: "PATCH",
+                }
+            );
 
             if (
                 !response.ok ||
-                !data.success
+                !data?.success
             ) {
                 throw new Error(
-                    data.message ||
+                    getResponseErrorMessage(
+                        response,
+                        data,
                         "Không thể hoàn thành nhắc việc."
+                    )
                 );
             }
 
@@ -306,7 +481,7 @@ function Reminders() {
             );
 
             setError(
-                err.message ||
+                err?.message ||
                     "Không thể hoàn thành nhắc việc."
             );
         } finally {
@@ -321,32 +496,36 @@ function Reminders() {
     async function reopenReminder(
         reminder
     ) {
-        if (!reminder?.id) return;
+        if (!reminder?.id) {
+            return;
+        }
 
         try {
             setActionId(reminder.id);
+
             setError("");
             setSuccess("");
 
-            const response =
-                await fetch(
-                    `/api/reminders/${reminder.id}/reopen`,
-                    {
-                        method: "PATCH",
-                        credentials: "include",
-                    }
-                );
-
-            const data =
-                await response.json();
+            const {
+                response,
+                data,
+            } = await reminderRequest(
+                `/api/reminders/${reminder.id}/reopen`,
+                {
+                    method: "PATCH",
+                }
+            );
 
             if (
                 !response.ok ||
-                !data.success
+                !data?.success
             ) {
                 throw new Error(
-                    data.message ||
+                    getResponseErrorMessage(
+                        response,
+                        data,
                         "Không thể mở lại nhắc việc."
+                    )
                 );
             }
 
@@ -363,7 +542,7 @@ function Reminders() {
             );
 
             setError(
-                err.message ||
+                err?.message ||
                     "Không thể mở lại nhắc việc."
             );
         } finally {
@@ -378,7 +557,9 @@ function Reminders() {
     async function deleteReminder(
         reminder
     ) {
-        if (!reminder?.id) return;
+        if (!reminder?.id) {
+            return;
+        }
 
         const confirmed =
             window.confirm(
@@ -391,28 +572,30 @@ function Reminders() {
 
         try {
             setActionId(reminder.id);
+
             setError("");
             setSuccess("");
 
-            const response =
-                await fetch(
-                    `/api/reminders/${reminder.id}`,
-                    {
-                        method: "DELETE",
-                        credentials: "include",
-                    }
-                );
-
-            const data =
-                await response.json();
+            const {
+                response,
+                data,
+            } = await reminderRequest(
+                `/api/reminders/${reminder.id}`,
+                {
+                    method: "DELETE",
+                }
+            );
 
             if (
                 !response.ok ||
-                !data.success
+                !data?.success
             ) {
                 throw new Error(
-                    data.message ||
+                    getResponseErrorMessage(
+                        response,
+                        data,
                         "Không thể xóa nhắc việc."
+                    )
                 );
             }
 
@@ -429,7 +612,7 @@ function Reminders() {
             );
 
             setError(
-                err.message ||
+                err?.message ||
                     "Không thể xóa nhắc việc."
             );
         } finally {
@@ -456,7 +639,7 @@ function Reminders() {
                 date.getTime()
             )
         ) {
-            return value;
+            return String(value);
         }
 
         return new Intl.DateTimeFormat(
@@ -467,6 +650,7 @@ function Reminders() {
                 year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
+                hour12: false,
             }
         ).format(date);
     }
@@ -557,51 +741,55 @@ function Reminders() {
        SUMMARY
     ===================================================== */
 
-    const summary = useMemo(() => {
-        const pending =
-            reminders.filter(
-                (item) =>
-                    item.status ===
-                    "pending"
-            ).length;
+    const summary =
+        useMemo(() => {
+            const pending =
+                reminders.filter(
+                    (item) =>
+                        item.status ===
+                        "pending"
+                ).length;
 
-        const completed =
-            reminders.filter(
-                (item) =>
-                    item.status ===
-                    "completed"
-            ).length;
+            const completed =
+                reminders.filter(
+                    (item) =>
+                        item.status ===
+                        "completed"
+                ).length;
 
-        const due =
-            reminders.filter((item) => {
-                if (
-                    item.status !==
-                    "pending"
-                ) {
-                    return false;
-                }
+            const due =
+                reminders.filter(
+                    (item) => {
+                        if (
+                            item.status !==
+                            "pending"
+                        ) {
+                            return false;
+                        }
 
-                const date =
-                    parseDatabaseDate(
-                        item.remind_at
-                    );
+                        const date =
+                            parseDatabaseDate(
+                                item.remind_at
+                            );
 
-                return (
-                    !Number.isNaN(
-                        date.getTime()
-                    ) &&
-                    date.getTime() <=
-                        Date.now()
-                );
-            }).length;
+                        return (
+                            !Number.isNaN(
+                                date.getTime()
+                            ) &&
+                            date.getTime() <=
+                                Date.now()
+                        );
+                    }
+                ).length;
 
-        return {
-            total: reminders.length,
-            pending,
-            completed,
-            due,
-        };
-    }, [reminders]);
+            return {
+                total:
+                    reminders.length,
+                pending,
+                completed,
+                due,
+            };
+        }, [reminders]);
 
     /* =====================================================
        RENDER
@@ -610,9 +798,7 @@ function Reminders() {
     return (
         <div className="reminders-page">
 
-            {/* =================================================
-                HEADER
-            ================================================= */}
+            {/* HEADER */}
 
             <div className="reminders-header">
 
@@ -644,14 +830,15 @@ function Reminders() {
 
             </div>
 
-            {/* =================================================
-                MESSAGES
-            ================================================= */}
+            {/* MESSAGES */}
 
             {error && (
                 <div className="reminder-message reminder-message-error">
                     <span>⚠️</span>
-                    <span>{error}</span>
+
+                    <span>
+                        {error}
+                    </span>
 
                     <button
                         type="button"
@@ -667,13 +854,14 @@ function Reminders() {
             {success && (
                 <div className="reminder-message reminder-message-success">
                     <span>✓</span>
-                    <span>{success}</span>
+
+                    <span>
+                        {success}
+                    </span>
                 </div>
             )}
 
-            {/* =================================================
-                SUMMARY
-            ================================================= */}
+            {/* SUMMARY */}
 
             <div className="reminder-summary">
 
@@ -743,9 +931,7 @@ function Reminders() {
 
             </div>
 
-            {/* =================================================
-                FORM
-            ================================================= */}
+            {/* FORM */}
 
             {showForm && (
                 <div className="reminder-form-card">
@@ -771,7 +957,9 @@ function Reminders() {
                             onClick={
                                 closeForm
                             }
-                            disabled={saving}
+                            disabled={
+                                saving
+                            }
                         >
                             ×
                         </button>
@@ -803,7 +991,9 @@ function Reminders() {
                                         handleInputChange
                                     }
                                     placeholder="Ví dụ: Gọi điện cho khách hàng"
-                                    maxLength={500}
+                                    maxLength={
+                                        500
+                                    }
                                     autoFocus
                                     disabled={
                                         saving
@@ -944,9 +1134,7 @@ function Reminders() {
                 </div>
             )}
 
-            {/* =================================================
-                LIST HEADER
-            ================================================= */}
+            {/* LIST HEADER */}
 
             <div className="reminders-list-header">
 
@@ -973,12 +1161,11 @@ function Reminders() {
 
             </div>
 
-            {/* =================================================
-                LOADING
-            ================================================= */}
+            {/* LOADING */}
 
             {loading ? (
                 <div className="reminder-empty-state">
+
                     <div className="reminder-spinner" />
 
                     <h3>
@@ -988,12 +1175,10 @@ function Reminders() {
                     <p>
                         Vui lòng chờ một chút.
                     </p>
-                </div>
-            ) : reminders.length === 0 ? (
 
-                /* =================================================
-                   EMPTY
-                ================================================= */
+                </div>
+            ) : reminders.length ===
+              0 ? (
 
                 <div className="reminder-empty-state">
 
@@ -1024,10 +1209,6 @@ function Reminders() {
                 </div>
 
             ) : (
-
-                /* =================================================
-                   LIST
-                ================================================= */
 
                 <div className="reminders-list">
 
@@ -1205,6 +1386,7 @@ function Reminders() {
             ================================================= */}
 
             <style>{`
+
                 .reminders-page {
                     width: 100%;
                     max-width: 1180px;
@@ -1253,7 +1435,14 @@ function Reminders() {
                     font-size: 14px;
                     font-weight: 700;
                     cursor: pointer;
-                    box-shadow: 0 7px 18px rgba(23, 105, 194, 0.2);
+                    box-shadow:
+                        0 7px 18px
+                        rgba(
+                            23,
+                            105,
+                            194,
+                            0.2
+                        );
                     transition:
                         transform 0.18s ease,
                         box-shadow 0.18s ease,
@@ -1263,7 +1452,14 @@ function Reminders() {
                 .reminder-add-button:hover,
                 .reminder-primary-button:hover {
                     transform: translateY(-1px);
-                    box-shadow: 0 10px 24px rgba(23, 105, 194, 0.27);
+                    box-shadow:
+                        0 10px 24px
+                        rgba(
+                            23,
+                            105,
+                            194,
+                            0.27
+                        );
                 }
 
                 .reminder-add-button span {
@@ -1312,7 +1508,8 @@ function Reminders() {
 
                 .reminder-summary {
                     display: grid;
-                    grid-template-columns: repeat(4, 1fr);
+                    grid-template-columns:
+                        repeat(4, 1fr);
                     gap: 14px;
                     margin-bottom: 28px;
                 }
@@ -1327,7 +1524,14 @@ function Reminders() {
                     border: 1px solid #e6eaf0;
                     border-radius: 15px;
                     background: #ffffff;
-                    box-shadow: 0 4px 18px rgba(20, 31, 50, 0.045);
+                    box-shadow:
+                        0 4px 18px
+                        rgba(
+                            20,
+                            31,
+                            50,
+                            0.045
+                        );
                 }
 
                 .summary-icon {
@@ -1362,7 +1566,14 @@ function Reminders() {
                     border: 1px solid #e1e6ed;
                     border-radius: 18px;
                     background: #ffffff;
-                    box-shadow: 0 8px 28px rgba(20, 31, 50, 0.07);
+                    box-shadow:
+                        0 8px 28px
+                        rgba(
+                            20,
+                            31,
+                            50,
+                            0.07
+                        );
                 }
 
                 .reminder-form-header {
@@ -1398,7 +1609,8 @@ function Reminders() {
 
                 .reminder-form-grid {
                     display: grid;
-                    grid-template-columns: 1fr 1fr;
+                    grid-template-columns:
+                        1fr 1fr;
                     gap: 18px;
                 }
 
@@ -1458,7 +1670,14 @@ function Reminders() {
                 .reminder-field select:focus {
                     border-color: #1769c2;
                     background: #ffffff;
-                    box-shadow: 0 0 0 3px rgba(23, 105, 194, 0.1);
+                    box-shadow:
+                        0 0 0 3px
+                        rgba(
+                            23,
+                            105,
+                            194,
+                            0.1
+                        );
                 }
 
                 .reminder-field small {
@@ -1553,7 +1772,14 @@ function Reminders() {
                     border: 1px solid #e3e7ed;
                     border-radius: 15px;
                     background: #ffffff;
-                    box-shadow: 0 3px 14px rgba(20, 31, 50, 0.04);
+                    box-shadow:
+                        0 3px 14px
+                        rgba(
+                            20,
+                            31,
+                            50,
+                            0.04
+                        );
                     transition:
                         transform 0.18s ease,
                         box-shadow 0.18s ease,
@@ -1563,11 +1789,19 @@ function Reminders() {
                 .reminder-card:hover {
                     transform: translateY(-1px);
                     border-color: #d4dce6;
-                    box-shadow: 0 7px 22px rgba(20, 31, 50, 0.07);
+                    box-shadow:
+                        0 7px 22px
+                        rgba(
+                            20,
+                            31,
+                            50,
+                            0.07
+                        );
                 }
 
                 .reminder-card.due {
-                    border-left: 4px solid #e5484d;
+                    border-left:
+                        4px solid #e5484d;
                 }
 
                 .reminder-card.completed {
@@ -1596,12 +1830,14 @@ function Reminders() {
                     font-weight: 800;
                 }
 
-                .reminder-card.due .reminder-status-dot {
+                .reminder-card.due
+                    .reminder-status-dot {
                     background: #fff0f0;
                     color: #d92d35;
                 }
 
-                .reminder-card.completed .reminder-status-dot {
+                .reminder-card.completed
+                    .reminder-status-dot {
                     background: #eaf8f0;
                     color: #16824d;
                 }
@@ -1628,7 +1864,8 @@ function Reminders() {
                 }
 
                 .reminder-card.completed h3 {
-                    text-decoration: line-through;
+                    text-decoration:
+                        line-through;
                 }
 
                 .reminder-status-badge {
@@ -1696,7 +1933,8 @@ function Reminders() {
                         opacity 0.18s ease;
                 }
 
-                .reminder-card-actions button:disabled {
+                .reminder-card-actions
+                    button:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
                 }
@@ -1780,10 +2018,14 @@ function Reminders() {
                     width: 32px;
                     height: 32px;
                     margin-bottom: 15px;
-                    border: 3px solid #e5ebf2;
-                    border-top-color: #1769c2;
+                    border:
+                        3px solid #e5ebf2;
+                    border-top-color:
+                        #1769c2;
                     border-radius: 50%;
-                    animation: reminderSpin 0.75s linear infinite;
+                    animation:
+                        reminderSpin
+                        0.75s linear infinite;
                 }
 
                 @keyframes reminderSpin {
@@ -1794,7 +2036,8 @@ function Reminders() {
 
                 @media (max-width: 900px) {
                     .reminder-summary {
-                        grid-template-columns: repeat(2, 1fr);
+                        grid-template-columns:
+                            repeat(2, 1fr);
                     }
 
                     .reminder-card {
@@ -1810,7 +2053,10 @@ function Reminders() {
 
                 @media (max-width: 650px) {
                     .reminders-page {
-                        padding: 20px 14px 40px;
+                        padding:
+                            20px
+                            14px
+                            40px;
                     }
 
                     .reminders-header {
@@ -1823,11 +2069,13 @@ function Reminders() {
                     }
 
                     .reminder-summary {
-                        grid-template-columns: 1fr 1fr;
+                        grid-template-columns:
+                            1fr 1fr;
                     }
 
                     .reminder-form-grid {
-                        grid-template-columns: 1fr;
+                        grid-template-columns:
+                            1fr;
                     }
 
                     .reminder-field-full {
@@ -1839,7 +2087,8 @@ function Reminders() {
                     }
 
                     .reminder-form-actions {
-                        flex-direction: column-reverse;
+                        flex-direction:
+                            column-reverse;
                     }
 
                     .reminder-form-actions button {
@@ -1857,13 +2106,15 @@ function Reminders() {
 
                 @media (max-width: 420px) {
                     .reminder-summary {
-                        grid-template-columns: 1fr;
+                        grid-template-columns:
+                            1fr;
                     }
 
                     .reminder-card-actions button {
                         flex: 1;
                     }
                 }
+
             `}</style>
         </div>
     );
@@ -1873,17 +2124,13 @@ function Reminders() {
    DATE HELPERS
 ========================================================= */
 
-/*
- * Database:
- *
- * YYYY-MM-DD HH:mm:ss
- *
- * Input:
- *
- * YYYY-MM-DDTHH:mm
- */
+/* =========================================================
+   PARSE DATABASE DATE
+========================================================= */
 
-function parseDatabaseDate(value) {
+function parseDatabaseDate(
+    value
+) {
     if (!value) {
         return new Date(NaN);
     }
@@ -1900,24 +2147,97 @@ function parseDatabaseDate(value) {
         return new Date(value);
     }
 
-    const normalized =
-        value.includes(" ")
-            ? value.replace(
+    const text =
+        value.trim();
+
+    if (!text) {
+        return new Date(NaN);
+    }
+
+    /*
+     * PostgreSQL / SQLite:
+     *
+     * 2026-08-13 15:30:00
+     *
+     * Không thêm Z.
+     * Browser hiểu là LOCAL TIME.
+     */
+
+    if (
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(
+            text
+        )
+    ) {
+        return new Date(
+            text.replace(
                 " ",
                 "T"
             )
-            : value;
+        );
+    }
 
-    return new Date(
-        normalized
-    );
+    /*
+     * ISO không timezone:
+     *
+     * 2026-08-13T15:30:00
+     */
+
+    if (
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(
+            text
+        )
+    ) {
+        return new Date(text);
+    }
+
+    /*
+     * ISO có timezone:
+     *
+     * 2026-08-13T08:30:00.000Z
+     *
+     * Để JavaScript tự xử lý.
+     */
+
+    return new Date(text);
 }
+
+/* =========================================================
+   DATABASE -> DATETIME LOCAL
+========================================================= */
 
 function convertDatabaseDateToInput(
     value
 ) {
     if (!value) {
         return "";
+    }
+
+    if (
+        typeof value === "string"
+    ) {
+        const text =
+            value.trim();
+
+        const databaseMatch =
+            text.match(
+                /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/
+            );
+
+        if (databaseMatch) {
+            const [
+                ,
+                year,
+                month,
+                day,
+                hours,
+                minutes,
+            ] = databaseMatch;
+
+            return (
+                `${year}-${month}-${day}` +
+                `T${hours}:${minutes}`
+            );
+        }
     }
 
     const date =
@@ -1960,6 +2280,10 @@ function convertDatabaseDateToInput(
     );
 }
 
+/* =========================================================
+   DATETIME LOCAL -> DATABASE
+========================================================= */
+
 function convertInputToDatabaseDate(
     value
 ) {
@@ -1967,19 +2291,28 @@ function convertInputToDatabaseDate(
         return "";
     }
 
-    /*
-     * datetime-local:
-     * 2026-08-11T09:30
-     *
-     * SQLite:
-     * 2026-08-11 09:30:00
-     */
+    const text =
+        String(value).trim();
+
+    const match =
+        text.match(
+            /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/
+        );
+
+    if (!match) {
+        return "";
+    }
+
+    const [
+        ,
+        datePart,
+        hours,
+        minutes,
+    ] = match;
 
     return (
-        value.replace(
-            "T",
-            " "
-        ) + ":00"
+        `${datePart} ` +
+        `${hours}:${minutes}:00`
     );
 }
 
