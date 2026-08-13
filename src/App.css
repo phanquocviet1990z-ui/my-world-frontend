@@ -4912,12 +4912,20 @@ body.dark-mode .notification-dropdown-footer {
     }
 }
 
-
 /* =====================================================
 AVATAR - SIDEBAR / TOPBAR
 ===================================================== */
 
-.profile-button .avatar-image,
+.profile-button .avatar-image {
+    display: block;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .social-avatar-wrap .avatar-image {
     display: block;
     width: 42px;
@@ -4926,7 +4934,6 @@ AVATAR - SIDEBAR / TOPBAR
     min-height: 42px;
     border-radius: 50%;
     object-fit: cover;
-    overflow: hidden;
 }
 
 .profile-button .avatar {
@@ -4936,6 +4943,7 @@ AVATAR - SIDEBAR / TOPBAR
     min-height: 42px;
     border-radius: 50%;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .social-avatar-wrap {
@@ -4943,11 +4951,5 @@ AVATAR - SIDEBAR / TOPBAR
     height: 42px;
     min-width: 42px;
     min-height: 42px;
-    border-radius: 50%;
-    overflow: visible;
-}
-
-.social-avatar-wrap .avatar-image {
-    border-radius: 50%;
-    object-fit: cover;
+    flex-shrink: 0;
 }

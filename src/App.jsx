@@ -2708,7 +2708,7 @@ AVATAR
 ===================================================== */
 
 function Avatar({ user }) {
-    const rawAvatar =
+    const avatar =
         user?.avatar ||
         user?.avatar_url ||
         user?.avatarUrl ||
@@ -2721,18 +2721,14 @@ function Avatar({ user }) {
     const [imageError, setImageError] =
         useState(false);
 
-    /*
-     * Khi avatar thực sự thay đổi
-     * thì cho phép load lại ảnh.
-     */
     useEffect(() => {
         setImageError(false);
-    }, [rawAvatar]);
+    }, [avatar]);
 
     /*
      * Không có avatar
      */
-    if (!rawAvatar || imageError) {
+    if (!avatar || imageError) {
         return (
             <div className="avatar avatar-fallback">
                 👤
@@ -2740,17 +2736,14 @@ function Avatar({ user }) {
         );
     }
 
-    let avatarUrl =
-        String(rawAvatar).trim();
+    let avatarUrl = String(avatar).trim();
 
     /*
-     * Avatar local từ backend
+     * Cloudinary / Google / Facebook:
      *
-     * Ví dụ:
-     * /uploads/avatars/avatar-1-123456.jpg
+     * https://...
      *
-     * phải chuyển thành:
-     * https://my-world-backend-3xwn.onrender.com/uploads/avatars/...
+     * giữ nguyên URL.
      */
     if (
         !avatarUrl.startsWith("http://") &&
@@ -2758,39 +2751,25 @@ function Avatar({ user }) {
         !avatarUrl.startsWith("data:") &&
         !avatarUrl.startsWith("blob:")
     ) {
+        /*
+         * Chỉ xử lý đường dẫn tương đối
+         */
         if (!avatarUrl.startsWith("/")) {
-            avatarUrl =
-                `/${avatarUrl}`;
+            avatarUrl = `/${avatarUrl}`;
         }
 
-        avatarUrl =
-            `${API_URL}${avatarUrl}`;
+        avatarUrl = `${API_URL}${avatarUrl}`;
     }
-
-    /*
-     * Không dùng Date.now().
-     *
-     * URL chỉ thay đổi khi rawAvatar thay đổi.
-     */
-    const separator =
-        avatarUrl.includes("?")
-            ? "&"
-            : "?";
-
-    const finalAvatarUrl =
-        `${avatarUrl}${separator}v=${encodeURIComponent(
-            String(rawAvatar)
-        )}`;
 
     return (
         <img
             className="avatar-image"
-            src={finalAvatarUrl}
+            src={avatarUrl}
             alt={getUserName(user)}
             referrerPolicy="no-referrer"
             onError={(event) => {
-                console.warn(
-                    "AVATAR IMAGE LOAD ERROR:",
+                console.error(
+                    "AVATAR IMAGE ERROR:",
                     event.currentTarget.src
                 );
 
