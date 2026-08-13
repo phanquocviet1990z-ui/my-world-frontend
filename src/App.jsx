@@ -2721,6 +2721,10 @@ function Avatar({ user }) {
     const [imageError, setImageError] =
         useState(false);
 
+    /*
+     * Khi avatar thực sự thay đổi
+     * thì cho phép load lại ảnh.
+     */
     useEffect(() => {
         setImageError(false);
     }, [rawAvatar]);
@@ -2740,12 +2744,13 @@ function Avatar({ user }) {
         String(rawAvatar).trim();
 
     /*
-     * Avatar local từ backend:
+     * Avatar local từ backend
      *
-     * /uploads/avatars/avatar-1-xxx.jpg
+     * Ví dụ:
+     * /uploads/avatars/avatar-1-123456.jpg
      *
-     * phải luôn lấy từ BACKEND Render,
-     * không lấy từ domain frontend.
+     * phải chuyển thành:
+     * https://my-world-backend-3xwn.onrender.com/uploads/avatars/...
      */
     if (
         !avatarUrl.startsWith("http://") &&
@@ -2754,7 +2759,8 @@ function Avatar({ user }) {
         !avatarUrl.startsWith("blob:")
     ) {
         if (!avatarUrl.startsWith("/")) {
-            avatarUrl = `/${avatarUrl}`;
+            avatarUrl =
+                `/${avatarUrl}`;
         }
 
         avatarUrl =
@@ -2762,10 +2768,9 @@ function Avatar({ user }) {
     }
 
     /*
-     * Chỉ thêm cache-busting dựa trên URL avatar.
+     * Không dùng Date.now().
      *
-     * KHÔNG dùng Date.now() vì Avatar có thể
-     * render lại rất nhiều lần.
+     * URL chỉ thay đổi khi rawAvatar thay đổi.
      */
     const separator =
         avatarUrl.includes("?")
@@ -2783,10 +2788,10 @@ function Avatar({ user }) {
             src={finalAvatarUrl}
             alt={getUserName(user)}
             referrerPolicy="no-referrer"
-            onError={() => {
+            onError={(event) => {
                 console.warn(
                     "AVATAR IMAGE LOAD ERROR:",
-                    finalAvatarUrl
+                    event.currentTarget.src
                 );
 
                 setImageError(true);
