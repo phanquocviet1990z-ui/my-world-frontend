@@ -12,6 +12,19 @@ const API_URL =
     "https://my-world-backend-3xwn.onrender.com";
 
 /* =========================================================
+   TIMEZONE
+========================================================= */
+
+/*
+ * MY WORLD sử dụng giờ Việt Nam.
+ *
+ * Việt Nam:
+ * UTC+07:00
+ */
+
+const VIETNAM_OFFSET = "+07:00";
+
+/* =========================================================
    SAFE JSON RESPONSE
 ========================================================= */
 
@@ -79,15 +92,18 @@ async function reminderRequest(
         {
             ...options,
             credentials: "include",
+
             headers: {
                 Accept:
                     "application/json",
+
                 ...(options.body
                     ? {
                           "Content-Type":
                               "application/json",
                       }
                     : {}),
+
                 ...(options.headers || {}),
             },
         }
@@ -347,13 +363,23 @@ function Reminders() {
                 : "POST";
 
             /*
-             * GIỮ NGUYÊN LOCAL TIME
+             * =================================================
+             * QUAN TRỌNG:
              *
-             * Không dùng:
+             * datetime-local KHÔNG có timezone.
              *
-             * new Date(
-             *     form.remind_at
-             * ).toISOString()
+             * Ví dụ:
+             *
+             * 2026-08-13T16:25
+             *
+             * Đây là 16:25 giờ Việt Nam.
+             *
+             * Chuyển thành:
+             *
+             * 2026-08-13T16:25:00+07:00
+             *
+             * để PostgreSQL hiểu chính xác đây là giờ Việt Nam.
+             * =================================================
              */
 
             const remindAt =
@@ -367,6 +393,16 @@ function Reminders() {
                 );
             }
 
+            console.log(
+                "REMINDER LOCAL INPUT:",
+                form.remind_at
+            );
+
+            console.log(
+                "REMINDER DATABASE VALUE:",
+                remindAt
+            );
+
             const {
                 response,
                 data,
@@ -374,6 +410,7 @@ function Reminders() {
                 url,
                 {
                     method,
+
                     body: JSON.stringify({
                         title,
 
@@ -645,11 +682,16 @@ function Reminders() {
         return new Intl.DateTimeFormat(
             "vi-VN",
             {
+                timeZone:
+                    "Asia/Ho_Chi_Minh",
+
                 day: "2-digit",
                 month: "2-digit",
                 year: "numeric",
+
                 hour: "2-digit",
                 minute: "2-digit",
+
                 hour12: false,
             }
         ).format(date);
@@ -785,8 +827,11 @@ function Reminders() {
             return {
                 total:
                     reminders.length,
+
                 pending,
+
                 completed,
+
                 due,
             };
         }, [reminders]);
@@ -803,6 +848,7 @@ function Reminders() {
             <div className="reminders-header">
 
                 <div>
+
                     <div className="reminders-eyebrow">
                         PERSONAL PLANNER
                     </div>
@@ -815,6 +861,7 @@ function Reminders() {
                         Quản lý những việc bạn
                         không muốn bỏ quên.
                     </p>
+
                 </div>
 
                 <button
@@ -834,6 +881,7 @@ function Reminders() {
 
             {error && (
                 <div className="reminder-message reminder-message-error">
+
                     <span>⚠️</span>
 
                     <span>
@@ -848,16 +896,19 @@ function Reminders() {
                     >
                         ×
                     </button>
+
                 </div>
             )}
 
             {success && (
                 <div className="reminder-message reminder-message-success">
+
                     <span>✓</span>
 
                     <span>
                         {success}
                     </span>
+
                 </div>
             )}
 
@@ -866,11 +917,13 @@ function Reminders() {
             <div className="reminder-summary">
 
                 <div className="summary-card">
+
                     <div className="summary-icon">
                         📋
                     </div>
 
                     <div>
+
                         <strong>
                             {summary.total}
                         </strong>
@@ -878,15 +931,19 @@ function Reminders() {
                         <span>
                             Tổng số
                         </span>
+
                     </div>
+
                 </div>
 
                 <div className="summary-card">
+
                     <div className="summary-icon">
                         ⏳
                     </div>
 
                     <div>
+
                         <strong>
                             {summary.pending}
                         </strong>
@@ -894,15 +951,19 @@ function Reminders() {
                         <span>
                             Đang chờ
                         </span>
+
                     </div>
+
                 </div>
 
                 <div className="summary-card summary-card-due">
+
                     <div className="summary-icon">
                         🔔
                     </div>
 
                     <div>
+
                         <strong>
                             {summary.due}
                         </strong>
@@ -910,15 +971,19 @@ function Reminders() {
                         <span>
                             Đã đến hạn
                         </span>
+
                     </div>
+
                 </div>
 
                 <div className="summary-card">
+
                     <div className="summary-icon">
                         ✓
                     </div>
 
                     <div>
+
                         <strong>
                             {summary.completed}
                         </strong>
@@ -926,7 +991,9 @@ function Reminders() {
                         <span>
                             Hoàn thành
                         </span>
+
                     </div>
+
                 </div>
 
             </div>
@@ -939,6 +1006,7 @@ function Reminders() {
                     <div className="reminder-form-header">
 
                         <div>
+
                             <h2>
                                 {editingId
                                     ? "Chỉnh sửa nhắc việc"
@@ -949,6 +1017,7 @@ function Reminders() {
                                 Điền thông tin bên
                                 dưới để tạo lời nhắc.
                             </p>
+
                         </div>
 
                         <button
@@ -1071,6 +1140,7 @@ function Reminders() {
                                         saving
                                     }
                                 >
+
                                     <option value="none">
                                         Không lặp
                                     </option>
@@ -1086,6 +1156,7 @@ function Reminders() {
                                     <option value="monthly">
                                         Hàng tháng
                                     </option>
+
                                 </select>
 
                                 <small>
@@ -1139,6 +1210,7 @@ function Reminders() {
             <div className="reminders-list-header">
 
                 <div>
+
                     <h2>
                         Danh sách nhắc việc
                     </h2>
@@ -1146,6 +1218,7 @@ function Reminders() {
                     <span>
                         {summary.total} mục
                     </span>
+
                 </div>
 
                 <button
@@ -1235,6 +1308,7 @@ function Reminders() {
                                     <div className="reminder-card-main">
 
                                         <div className="reminder-status-dot">
+
                                             {statusClass ===
                                             "completed"
                                                 ? "✓"
@@ -1242,6 +1316,7 @@ function Reminders() {
                                                     "due"
                                                     ? "!"
                                                     : "•"}
+
                                         </div>
 
                                         <div className="reminder-card-content">
@@ -1303,6 +1378,7 @@ function Reminders() {
 
                                         {reminder.status !==
                                             "completed" && (
+
                                             <button
                                                 type="button"
                                                 className="reminder-action-complete"
@@ -1319,10 +1395,12 @@ function Reminders() {
                                                     ? "..."
                                                     : "✓ Hoàn thành"}
                                             </button>
+
                                         )}
 
                                         {reminder.status ===
                                             "completed" && (
+
                                             <button
                                                 type="button"
                                                 className="reminder-action-reopen"
@@ -1339,6 +1417,7 @@ function Reminders() {
                                                     ? "..."
                                                     : "↶ Mở lại"}
                                             </button>
+
                                         )}
 
                                         <button
@@ -2124,13 +2203,22 @@ function Reminders() {
    DATE HELPERS
 ========================================================= */
 
-/* =========================================================
-   PARSE DATABASE DATE
-========================================================= */
+/*
+ * Parse dữ liệu ngày giờ từ PostgreSQL.
+ *
+ * Các trường hợp:
+ *
+ * 1. 2026-08-13T09:25:00.000Z
+ *    -> UTC -> tự đổi sang giờ Việt Nam.
+ *
+ * 2. 2026-08-13T16:25:00+07:00
+ *    -> đúng giờ Việt Nam.
+ *
+ * 3. 2026-08-13 16:25:00
+ *    -> coi là giờ local của browser.
+ */
 
-function parseDatabaseDate(
-    value
-) {
+function parseDatabaseDate(value) {
     if (!value) {
         return new Date(NaN);
     }
@@ -2155,12 +2243,11 @@ function parseDatabaseDate(
     }
 
     /*
-     * PostgreSQL / SQLite:
+     * PostgreSQL timestamp không timezone:
      *
-     * 2026-08-13 15:30:00
+     * 2026-08-13 16:25:00
      *
-     * Không thêm Z.
-     * Browser hiểu là LOCAL TIME.
+     * Đây được xem là giờ Việt Nam/local.
      */
 
     if (
@@ -2179,7 +2266,9 @@ function parseDatabaseDate(
     /*
      * ISO không timezone:
      *
-     * 2026-08-13T15:30:00
+     * 2026-08-13T16:25:00
+     *
+     * Browser xử lý như local time.
      */
 
     if (
@@ -2193,9 +2282,9 @@ function parseDatabaseDate(
     /*
      * ISO có timezone:
      *
-     * 2026-08-13T08:30:00.000Z
+     * 2026-08-13T09:25:00.000Z
      *
-     * Để JavaScript tự xử lý.
+     * JavaScript tự xử lý timezone.
      */
 
     return new Date(text);
@@ -2212,11 +2301,55 @@ function convertDatabaseDateToInput(
         return "";
     }
 
+    /*
+     * Nếu PostgreSQL trả:
+     *
+     * 2026-08-13T09:25:00.000Z
+     *
+     * phải đổi sang:
+     *
+     * 2026-08-13T16:25
+     *
+     * theo giờ Việt Nam.
+     */
+
     if (
         typeof value === "string"
     ) {
         const text =
             value.trim();
+
+        /*
+         * Có timezone rõ ràng.
+         */
+
+        const hasTimezone =
+            /(?:Z|[+-]\d{2}:\d{2})$/i.test(
+                text
+            );
+
+        if (hasTimezone) {
+            const date =
+                new Date(text);
+
+            if (
+                !Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+                return formatDateForDatetimeLocal(
+                    date
+                );
+            }
+        }
+
+        /*
+         * PostgreSQL trả:
+         *
+         * 2026-08-13 16:25:00
+         *
+         * Giữ nguyên.
+         */
 
         const databaseMatch =
             text.match(
@@ -2251,38 +2384,75 @@ function convertDatabaseDateToInput(
         return "";
     }
 
-    const year =
-        date.getFullYear();
+    return formatDateForDatetimeLocal(
+        date
+    );
+}
 
-    const month =
-        String(
-            date.getMonth() + 1
-        ).padStart(2, "0");
+/* =========================================================
+   DATE -> DATETIME LOCAL
+========================================================= */
 
-    const day =
-        String(
-            date.getDate()
-        ).padStart(2, "0");
+function formatDateForDatetimeLocal(
+    date
+) {
+    const parts =
+        new Intl.DateTimeFormat(
+            "en-CA",
+            {
+                timeZone:
+                    "Asia/Ho_Chi_Minh",
 
-    const hours =
-        String(
-            date.getHours()
-        ).padStart(2, "0");
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
 
-    const minutes =
-        String(
-            date.getMinutes()
-        ).padStart(2, "0");
+                hour: "2-digit",
+                minute: "2-digit",
+
+                hour12: false,
+            }
+        ).formatToParts(date);
+
+    const map = {};
+
+    parts.forEach((part) => {
+        if (
+            part.type !==
+            "literal"
+        ) {
+            map[part.type] =
+                part.value;
+        }
+    });
 
     return (
-        `${year}-${month}-${day}` +
-        `T${hours}:${minutes}`
+        `${map.year}-${map.month}-${map.day}` +
+        `T${map.hour}:${map.minute}`
     );
 }
 
 /* =========================================================
    DATETIME LOCAL -> DATABASE
 ========================================================= */
+
+/*
+ * Đây là phần FIX QUAN TRỌNG NHẤT.
+ *
+ * Input:
+ *
+ * 2026-08-13T16:25
+ *
+ * được hiểu là:
+ *
+ * 16:25 giờ Việt Nam
+ *
+ * rồi gửi:
+ *
+ * 2026-08-13T16:25:00+07:00
+ *
+ * PostgreSQL sẽ biết chính xác timezone.
+ */
 
 function convertInputToDatabaseDate(
     value
@@ -2311,8 +2481,9 @@ function convertInputToDatabaseDate(
     ] = match;
 
     return (
-        `${datePart} ` +
-        `${hours}:${minutes}:00`
+        `${datePart}T` +
+        `${hours}:${minutes}:00` +
+        VIETNAM_OFFSET
     );
 }
 
