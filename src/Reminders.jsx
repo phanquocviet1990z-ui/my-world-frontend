@@ -15,13 +15,6 @@ const API_URL =
    TIMEZONE
 ========================================================= */
 
-/*
- * MY WORLD sử dụng giờ Việt Nam.
- *
- * Việt Nam:
- * UTC+07:00
- */
-
 const VIETNAM_OFFSET = "+07:00";
 
 /* =========================================================
@@ -123,6 +116,7 @@ async function reminderRequest(
 ========================================================= */
 
 function Reminders() {
+
     /* =====================================================
        STATE
     ===================================================== */
@@ -150,6 +144,20 @@ function Reminders() {
 
     const [editingId, setEditingId] =
         useState(null);
+
+    /*
+     * Thời gian hiện tại của trình duyệt.
+     *
+     * Được cập nhật mỗi 30 giây để:
+     *
+     * Đang chờ
+     *      ↓
+     * tới giờ
+     *      ↓
+     * Đã đến hạn
+     */
+    const [currentTime, setCurrentTime] =
+        useState(Date.now());
 
     const [form, setForm] = useState({
         title: "",
@@ -197,7 +205,9 @@ function Reminders() {
                     ? data.reminders
                     : []
             );
+
         } catch (err) {
+
             console.error(
                 "LOAD REMINDERS ERROR:",
                 err
@@ -207,6 +217,7 @@ function Reminders() {
                 err?.message ||
                     "Không thể tải danh sách nhắc việc."
             );
+
         } finally {
             setLoading(false);
         }
@@ -221,10 +232,43 @@ function Reminders() {
     }, []);
 
     /* =====================================================
+       AUTO UPDATE CURRENT TIME
+    ===================================================== */
+
+    useEffect(() => {
+
+        /*
+         * Kiểm tra thời gian mỗi 30 giây.
+         *
+         * Ví dụ:
+         *
+         * 08:30 - Đang chờ
+         * 08:31 - Đến hạn
+         *
+         * UI sẽ tự chuyển trạng thái.
+         */
+
+        const timer =
+            setInterval(() => {
+
+                setCurrentTime(
+                    Date.now()
+                );
+
+            }, 30000);
+
+        return () => {
+            clearInterval(timer);
+        };
+
+    }, []);
+
+    /* =====================================================
        AUTO CLEAR SUCCESS
     ===================================================== */
 
     useEffect(() => {
+
         if (!success) {
             return;
         }
@@ -236,6 +280,7 @@ function Reminders() {
 
         return () =>
             clearTimeout(timer);
+
     }, [success]);
 
     /* =====================================================
@@ -243,6 +288,7 @@ function Reminders() {
     ===================================================== */
 
     function resetForm() {
+
         setForm({
             title: "",
             description: "",
@@ -254,6 +300,7 @@ function Reminders() {
     }
 
     function openCreateForm() {
+
         setError("");
         setSuccess("");
 
@@ -263,6 +310,7 @@ function Reminders() {
     }
 
     function openEditForm(reminder) {
+
         setError("");
         setSuccess("");
 
@@ -294,6 +342,7 @@ function Reminders() {
     }
 
     function closeForm() {
+
         if (saving) {
             return;
         }
@@ -306,6 +355,7 @@ function Reminders() {
     function handleInputChange(
         event
     ) {
+
         const {
             name,
             value,
@@ -324,6 +374,7 @@ function Reminders() {
     async function handleSubmit(
         event
     ) {
+
         event.preventDefault();
 
         setError("");
@@ -333,6 +384,7 @@ function Reminders() {
             form.title.trim();
 
         if (!title) {
+
             setError(
                 "Vui lòng nhập tiêu đề nhắc việc."
             );
@@ -341,6 +393,7 @@ function Reminders() {
         }
 
         if (!form.remind_at) {
+
             setError(
                 "Vui lòng chọn ngày và giờ nhắc."
             );
@@ -349,6 +402,7 @@ function Reminders() {
         }
 
         try {
+
             setSaving(true);
 
             const isEditing =
@@ -363,23 +417,19 @@ function Reminders() {
                 : "POST";
 
             /*
-             * =================================================
-             * QUAN TRỌNG:
-             *
-             * datetime-local KHÔNG có timezone.
+             * datetime-local không có timezone.
              *
              * Ví dụ:
              *
-             * 2026-08-13T16:25
+             * 2026-08-14T16:25
              *
-             * Đây là 16:25 giờ Việt Nam.
+             * được hiểu là:
              *
-             * Chuyển thành:
+             * 16:25 giờ Việt Nam.
              *
-             * 2026-08-13T16:25:00+07:00
+             * Gửi backend:
              *
-             * để PostgreSQL hiểu chính xác đây là giờ Việt Nam.
-             * =================================================
+             * 2026-08-14T16:25:00+07:00
              */
 
             const remindAt =
@@ -388,6 +438,7 @@ function Reminders() {
                 );
 
             if (!remindAt) {
+
                 throw new Error(
                     "Thời gian nhắc không hợp lệ."
                 );
@@ -430,6 +481,7 @@ function Reminders() {
                 !response.ok ||
                 !data?.success
             ) {
+
                 throw new Error(
                     getResponseErrorMessage(
                         response,
@@ -450,7 +502,14 @@ function Reminders() {
             resetForm();
 
             await loadReminders();
+
+            /*
+             * Cập nhật lại thời gian ngay sau khi lưu.
+             */
+            setCurrentTime(Date.now());
+
         } catch (err) {
+
             console.error(
                 "SAVE REMINDER ERROR:",
                 err
@@ -460,6 +519,7 @@ function Reminders() {
                 err?.message ||
                     "Không thể lưu nhắc việc."
             );
+
         } finally {
             setSaving(false);
         }
@@ -472,11 +532,13 @@ function Reminders() {
     async function completeReminder(
         reminder
     ) {
+
         if (!reminder?.id) {
             return;
         }
 
         try {
+
             setActionId(reminder.id);
 
             setError("");
@@ -496,6 +558,7 @@ function Reminders() {
                 !response.ok ||
                 !data?.success
             ) {
+
                 throw new Error(
                     getResponseErrorMessage(
                         response,
@@ -511,7 +574,11 @@ function Reminders() {
             );
 
             await loadReminders();
+
+            setCurrentTime(Date.now());
+
         } catch (err) {
+
             console.error(
                 "COMPLETE REMINDER ERROR:",
                 err
@@ -521,6 +588,7 @@ function Reminders() {
                 err?.message ||
                     "Không thể hoàn thành nhắc việc."
             );
+
         } finally {
             setActionId(null);
         }
@@ -533,11 +601,13 @@ function Reminders() {
     async function reopenReminder(
         reminder
     ) {
+
         if (!reminder?.id) {
             return;
         }
 
         try {
+
             setActionId(reminder.id);
 
             setError("");
@@ -557,6 +627,7 @@ function Reminders() {
                 !response.ok ||
                 !data?.success
             ) {
+
                 throw new Error(
                     getResponseErrorMessage(
                         response,
@@ -572,7 +643,11 @@ function Reminders() {
             );
 
             await loadReminders();
+
+            setCurrentTime(Date.now());
+
         } catch (err) {
+
             console.error(
                 "REOPEN REMINDER ERROR:",
                 err
@@ -582,6 +657,7 @@ function Reminders() {
                 err?.message ||
                     "Không thể mở lại nhắc việc."
             );
+
         } finally {
             setActionId(null);
         }
@@ -594,6 +670,7 @@ function Reminders() {
     async function deleteReminder(
         reminder
     ) {
+
         if (!reminder?.id) {
             return;
         }
@@ -608,6 +685,7 @@ function Reminders() {
         }
 
         try {
+
             setActionId(reminder.id);
 
             setError("");
@@ -627,6 +705,7 @@ function Reminders() {
                 !response.ok ||
                 !data?.success
             ) {
+
                 throw new Error(
                     getResponseErrorMessage(
                         response,
@@ -642,7 +721,9 @@ function Reminders() {
             );
 
             await loadReminders();
+
         } catch (err) {
+
             console.error(
                 "DELETE REMINDER ERROR:",
                 err
@@ -652,6 +733,7 @@ function Reminders() {
                 err?.message ||
                     "Không thể xóa nhắc việc."
             );
+
         } finally {
             setActionId(null);
         }
@@ -664,6 +746,7 @@ function Reminders() {
     function formatReminderDate(
         value
     ) {
+
         if (!value) {
             return "Chưa xác định";
         }
@@ -704,6 +787,10 @@ function Reminders() {
     function getStatusLabel(
         reminder
     ) {
+
+        /*
+         * Ưu tiên trạng thái completed
+         */
         if (
             reminder.status ===
             "completed"
@@ -716,22 +803,34 @@ function Reminders() {
                 reminder.remind_at
             );
 
+        /*
+         * Nếu thời gian đã tới hoặc
+         * đã vượt qua hiện tại:
+         *
+         * ĐÃ ĐẾN HẠN
+         */
         if (
             !Number.isNaN(
                 date.getTime()
             ) &&
             date.getTime() <=
-                Date.now()
+                currentTime
         ) {
             return "Đã đến hạn";
         }
 
+        /*
+         * Nếu thời gian vẫn còn ở tương lai:
+         *
+         * ĐANG CHỜ
+         */
         return "Đang chờ";
     }
 
     function getStatusClass(
         reminder
     ) {
+
         if (
             reminder.status ===
             "completed"
@@ -749,7 +848,7 @@ function Reminders() {
                 date.getTime()
             ) &&
             date.getTime() <=
-                Date.now()
+                currentTime
         ) {
             return "due";
         }
@@ -764,7 +863,9 @@ function Reminders() {
     function getRepeatLabel(
         repeatType
     ) {
+
         switch (repeatType) {
+
             case "daily":
                 return "🔁 Hàng ngày";
 
@@ -785,26 +886,29 @@ function Reminders() {
 
     const summary =
         useMemo(() => {
+
+            const now =
+                currentTime;
+
+            /*
+             * =================================================
+             * ĐANG CHỜ
+             *
+             * Chỉ những việc:
+             *
+             * - chưa hoàn thành
+             * - có ngày hợp lệ
+             * - thời gian > hiện tại
+             * =================================================
+             */
+
             const pending =
                 reminders.filter(
-                    (item) =>
-                        item.status ===
-                        "pending"
-                ).length;
-
-            const completed =
-                reminders.filter(
-                    (item) =>
-                        item.status ===
-                        "completed"
-                ).length;
-
-            const due =
-                reminders.filter(
                     (item) => {
+
                         if (
-                            item.status !==
-                            "pending"
+                            item.status ===
+                            "completed"
                         ) {
                             return false;
                         }
@@ -814,14 +918,74 @@ function Reminders() {
                                 item.remind_at
                             );
 
-                        return (
-                            !Number.isNaN(
+                        if (
+                            Number.isNaN(
                                 date.getTime()
-                            ) &&
-                            date.getTime() <=
-                                Date.now()
+                            )
+                        ) {
+                            return false;
+                        }
+
+                        return (
+                            date.getTime() >
+                            now
                         );
                     }
+                ).length;
+
+            /*
+             * =================================================
+             * ĐÃ ĐẾN HẠN
+             *
+             * Chỉ những việc:
+             *
+             * - chưa hoàn thành
+             * - thời gian <= hiện tại
+             * =================================================
+             */
+
+            const due =
+                reminders.filter(
+                    (item) => {
+
+                        if (
+                            item.status ===
+                            "completed"
+                        ) {
+                            return false;
+                        }
+
+                        const date =
+                            parseDatabaseDate(
+                                item.remind_at
+                            );
+
+                        if (
+                            Number.isNaN(
+                                date.getTime()
+                            )
+                        ) {
+                            return false;
+                        }
+
+                        return (
+                            date.getTime() <=
+                            now
+                        );
+                    }
+                ).length;
+
+            /*
+             * =================================================
+             * HOÀN THÀNH
+             * =================================================
+             */
+
+            const completed =
+                reminders.filter(
+                    (item) =>
+                        item.status ===
+                        "completed"
                 ).length;
 
             return {
@@ -834,7 +998,11 @@ function Reminders() {
 
                 due,
             };
-        }, [reminders]);
+
+        }, [
+            reminders,
+            currentTime,
+        ]);
 
     /* =====================================================
        RENDER
@@ -843,7 +1011,9 @@ function Reminders() {
     return (
         <div className="reminders-page">
 
-            {/* HEADER */}
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
             <div className="reminders-header">
 
@@ -877,7 +1047,9 @@ function Reminders() {
 
             </div>
 
-            {/* MESSAGES */}
+            {/* =================================================
+                MESSAGES
+            ================================================= */}
 
             {error && (
                 <div className="reminder-message reminder-message-error">
@@ -912,7 +1084,9 @@ function Reminders() {
                 </div>
             )}
 
-            {/* SUMMARY */}
+            {/* =================================================
+                SUMMARY
+            ================================================= */}
 
             <div className="reminder-summary">
 
@@ -998,7 +1172,9 @@ function Reminders() {
 
             </div>
 
-            {/* FORM */}
+            {/* =================================================
+                FORM
+            ================================================= */}
 
             {showForm && (
                 <div className="reminder-form-card">
@@ -1205,7 +1381,9 @@ function Reminders() {
                 </div>
             )}
 
-            {/* LIST HEADER */}
+            {/* =================================================
+                LIST HEADER
+            ================================================= */}
 
             <div className="reminders-list-header">
 
@@ -1234,9 +1412,12 @@ function Reminders() {
 
             </div>
 
-            {/* LOADING */}
+            {/* =================================================
+                LOADING / EMPTY / LIST
+            ================================================= */}
 
             {loading ? (
+
                 <div className="reminder-empty-state">
 
                     <div className="reminder-spinner" />
@@ -1250,8 +1431,8 @@ function Reminders() {
                     </p>
 
                 </div>
-            ) : reminders.length ===
-              0 ? (
+
+            ) : reminders.length === 0 ? (
 
                 <div className="reminder-empty-state">
 
@@ -2114,6 +2295,7 @@ function Reminders() {
                 }
 
                 @media (max-width: 900px) {
+
                     .reminder-summary {
                         grid-template-columns:
                             repeat(2, 1fr);
@@ -2131,6 +2313,7 @@ function Reminders() {
                 }
 
                 @media (max-width: 650px) {
+
                     .reminders-page {
                         padding:
                             20px
@@ -2184,6 +2367,7 @@ function Reminders() {
                 }
 
                 @media (max-width: 420px) {
+
                     .reminder-summary {
                         grid-template-columns:
                             1fr;
@@ -2195,6 +2379,7 @@ function Reminders() {
                 }
 
             `}</style>
+
         </div>
     );
 }
@@ -2204,21 +2389,25 @@ function Reminders() {
 ========================================================= */
 
 /*
- * Parse dữ liệu ngày giờ từ PostgreSQL.
+ * Parse ngày giờ từ PostgreSQL.
  *
- * Các trường hợp:
+ * Hỗ trợ:
  *
- * 1. 2026-08-13T09:25:00.000Z
- *    -> UTC -> tự đổi sang giờ Việt Nam.
+ * 1. 2026-08-14T01:25:00.000Z
+ *    -> UTC -> đổi sang giờ Việt Nam.
  *
- * 2. 2026-08-13T16:25:00+07:00
- *    -> đúng giờ Việt Nam.
+ * 2. 2026-08-14T08:25:00+07:00
+ *    -> giờ Việt Nam.
  *
- * 3. 2026-08-13 16:25:00
- *    -> coi là giờ local của browser.
+ * 3. 2026-08-14 08:25:00
+ *    -> PostgreSQL timestamp không timezone.
+ *
+ * Với dạng không có timezone, MY WORLD coi
+ * đó là giờ Việt Nam.
  */
 
 function parseDatabaseDate(value) {
+
     if (!value) {
         return new Date(NaN);
     }
@@ -2245,46 +2434,73 @@ function parseDatabaseDate(value) {
     /*
      * PostgreSQL timestamp không timezone:
      *
-     * 2026-08-13 16:25:00
+     * 2026-08-14 16:25:00
      *
-     * Đây được xem là giờ Việt Nam/local.
+     * Phải coi là giờ Việt Nam.
      */
 
-    if (
-        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(
-            text
-        )
-    ) {
+    const postgresMatch =
+        text.match(
+            /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/
+        );
+
+    if (postgresMatch) {
+
+        const [
+            ,
+            year,
+            month,
+            day,
+            hours,
+            minutes,
+            seconds = "00",
+        ] = postgresMatch;
+
         return new Date(
-            text.replace(
-                " ",
-                "T"
-            )
+            `${year}-${month}-${day}` +
+            `T${hours}:${minutes}:${seconds}` +
+            `${VIETNAM_OFFSET}`
         );
     }
 
     /*
      * ISO không timezone:
      *
-     * 2026-08-13T16:25:00
+     * 2026-08-14T16:25:00
      *
-     * Browser xử lý như local time.
+     * Cũng coi là giờ Việt Nam.
      */
 
-    if (
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(
-            text
-        )
-    ) {
-        return new Date(text);
+    const isoLocalMatch =
+        text.match(
+            /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/
+        );
+
+    if (isoLocalMatch) {
+
+        const [
+            ,
+            year,
+            month,
+            day,
+            hours,
+            minutes,
+            seconds = "00",
+        ] = isoLocalMatch;
+
+        return new Date(
+            `${year}-${month}-${day}` +
+            `T${hours}:${minutes}:${seconds}` +
+            `${VIETNAM_OFFSET}`
+        );
     }
 
     /*
      * ISO có timezone:
      *
-     * 2026-08-13T09:25:00.000Z
+     * 2026-08-14T09:25:00.000Z
      *
-     * JavaScript tự xử lý timezone.
+     * JavaScript tự xử lý chính xác.
      */
 
     return new Date(text);
@@ -2297,25 +2513,15 @@ function parseDatabaseDate(value) {
 function convertDatabaseDateToInput(
     value
 ) {
+
     if (!value) {
         return "";
     }
 
-    /*
-     * Nếu PostgreSQL trả:
-     *
-     * 2026-08-13T09:25:00.000Z
-     *
-     * phải đổi sang:
-     *
-     * 2026-08-13T16:25
-     *
-     * theo giờ Việt Nam.
-     */
-
     if (
         typeof value === "string"
     ) {
+
         const text =
             value.trim();
 
@@ -2329,6 +2535,7 @@ function convertDatabaseDateToInput(
             );
 
         if (hasTimezone) {
+
             const date =
                 new Date(text);
 
@@ -2337,6 +2544,7 @@ function convertDatabaseDateToInput(
                     date.getTime()
                 )
             ) {
+
                 return formatDateForDatetimeLocal(
                     date
                 );
@@ -2344,11 +2552,9 @@ function convertDatabaseDateToInput(
         }
 
         /*
-         * PostgreSQL trả:
+         * PostgreSQL không timezone.
          *
-         * 2026-08-13 16:25:00
-         *
-         * Giữ nguyên.
+         * Giữ nguyên giờ Việt Nam.
          */
 
         const databaseMatch =
@@ -2357,6 +2563,7 @@ function convertDatabaseDateToInput(
             );
 
         if (databaseMatch) {
+
             const [
                 ,
                 year,
@@ -2396,6 +2603,7 @@ function convertDatabaseDateToInput(
 function formatDateForDatetimeLocal(
     date
 ) {
+
     const parts =
         new Intl.DateTimeFormat(
             "en-CA",
@@ -2417,6 +2625,7 @@ function formatDateForDatetimeLocal(
     const map = {};
 
     parts.forEach((part) => {
+
         if (
             part.type !==
             "literal"
@@ -2424,6 +2633,7 @@ function formatDateForDatetimeLocal(
             map[part.type] =
                 part.value;
         }
+
     });
 
     return (
@@ -2436,27 +2646,10 @@ function formatDateForDatetimeLocal(
    DATETIME LOCAL -> DATABASE
 ========================================================= */
 
-/*
- * Đây là phần FIX QUAN TRỌNG NHẤT.
- *
- * Input:
- *
- * 2026-08-13T16:25
- *
- * được hiểu là:
- *
- * 16:25 giờ Việt Nam
- *
- * rồi gửi:
- *
- * 2026-08-13T16:25:00+07:00
- *
- * PostgreSQL sẽ biết chính xác timezone.
- */
-
 function convertInputToDatabaseDate(
     value
 ) {
+
     if (!value) {
         return "";
     }
