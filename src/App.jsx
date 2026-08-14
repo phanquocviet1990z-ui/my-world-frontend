@@ -2210,45 +2210,62 @@ function NotificationItem({
 
 /* =====================================================
 PARSE NOTIFICATION DATE
+POSTGRESQL / NEON TIMEZONE
 ===================================================== */
 
-function parseNotificationDate(
-    value
-) {
+function parseNotificationDate(value) {
     if (!value) {
         return null;
     }
 
     if (value instanceof Date) {
-        return Number.isNaN(
-            value.getTime()
-        )
+        return Number.isNaN(value.getTime())
             ? null
             : value;
     }
 
-    let text =
-        String(value).trim();
+    let text = String(value).trim();
 
     if (!text) {
         return null;
     }
+
+    /*
+     * PostgreSQL có thể trả:
+     *
+     * 2026-08-14 07:00:00
+     * 2026-08-14T07:00:00
+     * 2026-08-14T07:00:00.123
+     * 2026-08-14T07:00:00Z
+     * 2026-08-14T07:00:00+00:00
+     */
 
     text = text.replace(
         /(\.\d{3})\d+/,
         "$1"
     );
 
+    /*
+     * Đổi khoảng trắng giữa ngày và giờ
+     * thành T.
+     */
+
     text = text.replace(
         /^(\d{4}-\d{2}-\d{2})\s+/,
         "$1T"
     );
 
+    /*
+     * Có timezone rõ ràng:
+     * Z
+     * +00
+     * +0000
+     * +00:00
+     */
+
     if (
-        /[zZ]$/.test(text) ||
-        /[+-]\d{2}:?\d{2}$/.test(
-            text
-        ) ||
+        /Z$/i.test(text) ||
+        /[+-]\d{2}:?\d{2}$/.test(text) ||
         /[+-]\d{2}$/.test(text)
     ) {
         text = text.replace(
@@ -2256,49 +2273,35 @@ function parseNotificationDate(
             "$1:00"
         );
 
-        const parsed =
-            new Date(text);
+        const parsed = new Date(text);
 
-        if (
-            !Number.isNaN(
-                parsed.getTime()
-            )
-        ) {
+        if (!Number.isNaN(parsed.getTime())) {
             return parsed;
         }
     }
 
-    const match =
-        text.match(
-            /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
-        );
+    /*
+     * PostgreSQL timestamp không có timezone.
+     *
+     * Database của MY WORLD lưu thời gian theo UTC,
+     * nên phải đọc nó bằng Date.UTC().
+     */
+
+    const match = text.match(
+        /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
+    );
 
     if (match) {
-        const year =
-            Number(match[1]);
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const hour = Number(match[4]);
+        const minute = Number(match[5]);
+        const second = Number(match[6] || 0);
 
-        const month =
-            Number(match[2]);
-
-        const day =
-            Number(match[3]);
-
-        const hour =
-            Number(match[4]);
-
-        const minute =
-            Number(match[5]);
-
-        const second =
-            Number(match[6] || 0);
-
-        const millisecond =
-            Number(
-                (
-                    match[7] ||
-                    "0"
-                ).padEnd(3, "0")
-            );
+        const millisecond = Number(
+            (match[7] || "0").padEnd(3, "0")
+        );
 
         return new Date(
             Date.UTC(
@@ -2313,12 +2316,13 @@ function parseNotificationDate(
         );
     }
 
-    const fallback =
-        new Date(text);
+    /*
+     * Fallback
+     */
 
-    return Number.isNaN(
-        fallback.getTime()
-    )
+    const fallback = new Date(text);
+
+    return Number.isNaN(fallback.getTime())
         ? null
         : fallback;
 }
