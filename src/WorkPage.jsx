@@ -1,6 +1,11 @@
-
 import { useEffect, useMemo, useState } from "react";
 import "./WorkPage.css";
+
+/* =========================================================
+   TIMEZONE
+========================================================= */
+
+const APP_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 /* =========================================================
    EMPTY FORM
@@ -62,6 +67,7 @@ const PRIORITY_OPTIONS = [
 ========================================================= */
 
 function WorkPage({ apiUrl }) {
+
     const [tasks, setTasks] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -73,11 +79,6 @@ function WorkPage({ apiUrl }) {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [priorityFilter, setPriorityFilter] = useState("all");
-
-    /* =====================================================
-       DATE FILTER
-    ===================================================== */
-
     const [dateFilter, setDateFilter] = useState("all");
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -95,6 +96,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     async function loadTasks(showLoading = true) {
+
         if (showLoading) {
             setLoading(true);
         }
@@ -102,6 +104,7 @@ function WorkPage({ apiUrl }) {
         setError("");
 
         try {
+
             const response = await fetch(
                 `${apiUrl}/api/tasks`,
                 {
@@ -115,7 +118,10 @@ function WorkPage({ apiUrl }) {
 
             const data = await response.json();
 
-            if (!response.ok || !data.success) {
+            if (
+                !response.ok ||
+                !data.success
+            ) {
                 throw new Error(
                     data.message ||
                     "Không thể tải danh sách công việc."
@@ -127,7 +133,9 @@ function WorkPage({ apiUrl }) {
                     ? data.tasks
                     : []
             );
+
         } catch (err) {
+
             console.error(
                 "LOAD TASKS ERROR:",
                 err
@@ -137,7 +145,9 @@ function WorkPage({ apiUrl }) {
                 err.message ||
                 "Không thể kết nối tới máy chủ."
             );
+
         } finally {
+
             if (showLoading) {
                 setLoading(false);
             }
@@ -149,10 +159,11 @@ function WorkPage({ apiUrl }) {
     }, []);
 
     /* =====================================================
-       TOAST
+       SUCCESS
     ===================================================== */
 
     function showSuccess(message) {
+
         setSuccessMessage(message);
 
         window.setTimeout(() => {
@@ -165,6 +176,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     function openCreateModal() {
+
         setEditingTask(null);
 
         setForm({
@@ -176,8 +188,18 @@ function WorkPage({ apiUrl }) {
     }
 
     function openEditModal(task) {
+
         const dueParts =
-            splitDateTime(task.due_date);
+            splitDateTimeVietnam(task.due_date);
+
+        console.log(
+            "EDIT TASK DATE:",
+            {
+                databaseValue: task.due_date,
+                vietnamDate: dueParts.date,
+                vietnamTime: dueParts.time
+            }
+        );
 
         setEditingTask(task);
 
@@ -195,6 +217,7 @@ function WorkPage({ apiUrl }) {
     }
 
     function closeModal() {
+
         if (saving) {
             return;
         }
@@ -208,6 +231,7 @@ function WorkPage({ apiUrl }) {
     }
 
     function handleFormChange(event) {
+
         const {
             name,
             value
@@ -224,6 +248,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     function clearDueDate() {
+
         setForm((previous) => ({
             ...previous,
             due_date: "",
@@ -236,12 +261,14 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     async function handleSubmit(event) {
+
         event.preventDefault();
 
         const title =
             form.title.trim();
 
         if (!title) {
+
             setError(
                 "Vui lòng nhập tên công việc."
             );
@@ -250,6 +277,7 @@ function WorkPage({ apiUrl }) {
         }
 
         if (title.length > 500) {
+
             setError(
                 "Tên công việc không được vượt quá 500 ký tự."
             );
@@ -257,31 +285,62 @@ function WorkPage({ apiUrl }) {
             return;
         }
 
-        /*
-         * Nếu chọn ngày nhưng chưa chọn giờ,
-         * mặc định hạn hoàn thành là 23:59.
-         */
+        /* =================================================
+           TIMEZONE VIỆT NAM
+           
+           Ví dụ:
+           
+           Người dùng chọn:
+           14/08/2026
+           08:50
+           
+           Gửi server:
+           2026-08-14T08:50:00+07:00
+           
+           PostgreSQL timestamptz sẽ lưu:
+           2026-08-14T01:50:00.000Z
+           
+           Đây là ĐÚNG.
+        ================================================= */
+
         let dueDate = null;
 
         if (form.due_date) {
+
             const selectedTime =
                 form.due_time || "23:59";
 
             dueDate =
-                `${form.due_date}T${selectedTime}`;
+                vietnamDateTimeToISO(
+                    form.due_date,
+                    selectedTime
+                );
         }
+
+        console.log(
+            "TASK DUE DATE:",
+            {
+                inputDate: form.due_date,
+                inputTime: form.due_time,
+                sendToServer: dueDate
+            }
+        );
 
         setSaving(true);
         setError("");
 
         try {
+
             const payload = {
                 title,
                 description:
                     form.description.trim(),
-                status: form.status,
-                priority: form.priority,
-                due_date: dueDate
+                status:
+                    form.status,
+                priority:
+                    form.priority,
+                due_date:
+                    dueDate
             };
 
             const url = editingTask
@@ -322,6 +381,7 @@ function WorkPage({ apiUrl }) {
             }
 
             if (editingTask) {
+
                 setTasks((previous) =>
                     previous.map((task) =>
                         task.id ===
@@ -334,7 +394,9 @@ function WorkPage({ apiUrl }) {
                 showSuccess(
                     "Đã cập nhật công việc."
                 );
+
             } else {
+
                 setTasks((previous) => [
                     data.task,
                     ...previous
@@ -346,7 +408,9 @@ function WorkPage({ apiUrl }) {
             }
 
             closeModal();
+
         } catch (err) {
+
             console.error(
                 "SAVE TASK ERROR:",
                 err
@@ -356,7 +420,9 @@ function WorkPage({ apiUrl }) {
                 err.message ||
                 "Không thể lưu công việc."
             );
+
         } finally {
+
             setSaving(false);
         }
     }
@@ -366,6 +432,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     async function handleComplete(task) {
+
         if (
             task.status === "completed"
         ) {
@@ -373,6 +440,7 @@ function WorkPage({ apiUrl }) {
         }
 
         try {
+
             const response =
                 await fetch(
                     `${apiUrl}/api/tasks/${task.id}/complete`,
@@ -410,7 +478,9 @@ function WorkPage({ apiUrl }) {
             showSuccess(
                 "✓ Đã hoàn thành công việc."
             );
+
         } catch (err) {
+
             console.error(
                 "COMPLETE TASK ERROR:",
                 err
@@ -428,6 +498,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     async function handleDelete() {
+
         if (!deleteTask) {
             return;
         }
@@ -436,6 +507,7 @@ function WorkPage({ apiUrl }) {
         setError("");
 
         try {
+
             const response =
                 await fetch(
                     `${apiUrl}/api/tasks/${deleteTask.id}`,
@@ -475,7 +547,9 @@ function WorkPage({ apiUrl }) {
             );
 
             setDeleteTask(null);
+
         } catch (err) {
+
             console.error(
                 "DELETE TASK ERROR:",
                 err
@@ -485,93 +559,86 @@ function WorkPage({ apiUrl }) {
                 err.message ||
                 "Không thể xóa công việc."
             );
+
         } finally {
+
             setDeleting(false);
         }
     }
 
     /* =====================================================
-       DATE FILTER HELPERS
+       DATE FILTER
     ===================================================== */
 
     function getDateFilterType(
         date,
         completed = false
     ) {
+
         if (!date) {
             return "none";
         }
 
         const parsed =
-            new Date(date);
+            parseDate(date);
 
-        if (
-            Number.isNaN(
-                parsed.getTime()
-            )
-        ) {
+        if (!parsed) {
             return "none";
         }
 
         const now =
             new Date();
 
-        const todayStart =
-            new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate()
+        const today =
+            getVietnamDateParts(now);
+
+        const task =
+            getVietnamDateParts(parsed);
+
+        const todayKey =
+            `${today.year}-${today.month}-${today.day}`;
+
+        const taskKey =
+            `${task.year}-${task.month}-${task.day}`;
+
+        const todayDate =
+            vietnamDateToDayNumber(
+                today.year,
+                today.month,
+                today.day
             );
 
-        const tomorrowStart =
-            new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate() + 1
+        const taskDate =
+            vietnamDateToDayNumber(
+                task.year,
+                task.month,
+                task.day
             );
 
-        const dayAfterTomorrowStart =
-            new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate() + 2
-            );
+        const difference =
+            taskDate - todayDate;
 
-        /*
-         * Đã hoàn thành thì không tính quá hạn.
-         */
         if (
             !completed &&
-            parsed < now
+            parsed.getTime() < now.getTime()
         ) {
             return "overdue";
         }
 
-        /*
-         * Hôm nay
-         */
         if (
-            parsed >= todayStart &&
-            parsed < tomorrowStart
+            taskKey === todayKey
         ) {
             return "today";
         }
 
-        /*
-         * Ngày mai
-         */
         if (
-            parsed >= tomorrowStart &&
-            parsed < dayAfterTomorrowStart
+            difference === 1
         ) {
             return "tomorrow";
         }
 
-        /*
-         * Sau ngày mai
-         */
         if (
-            parsed >= dayAfterTomorrowStart
+            difference >= 2
         ) {
             return "upcoming";
         }
@@ -584,10 +651,12 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     const filteredTasks = useMemo(() => {
+
         const keyword =
             search.trim().toLowerCase();
 
         return tasks.filter((task) => {
+
             const matchesSearch =
                 !keyword ||
                 String(
@@ -614,7 +683,8 @@ function WorkPage({ apiUrl }) {
             const dateType =
                 getDateFilterType(
                     task.due_date,
-                    task.status === "completed"
+                    task.status ===
+                        "completed"
                 );
 
             const matchesDate =
@@ -628,6 +698,7 @@ function WorkPage({ apiUrl }) {
                 matchesDate
             );
         });
+
     }, [
         tasks,
         search,
@@ -641,6 +712,7 @@ function WorkPage({ apiUrl }) {
     ===================================================== */
 
     const statistics = useMemo(() => {
+
         const total =
             tasks.length;
 
@@ -681,6 +753,7 @@ function WorkPage({ apiUrl }) {
             pending,
             urgent
         };
+
     }, [tasks]);
 
     /* =====================================================
@@ -689,10 +762,6 @@ function WorkPage({ apiUrl }) {
 
     return (
         <section className="work-page">
-
-            {/* =================================================
-                HEADER
-            ================================================= */}
 
             <div className="work-header">
 
@@ -738,10 +807,6 @@ function WorkPage({ apiUrl }) {
 
             </div>
 
-            {/* =================================================
-                ERROR
-            ================================================= */}
-
             {error && (
                 <div className="work-alert error">
 
@@ -769,10 +834,6 @@ function WorkPage({ apiUrl }) {
                 </div>
             )}
 
-            {/* =================================================
-                SUCCESS
-            ================================================= */}
-
             {successMessage && (
                 <div className="work-alert success">
 
@@ -799,10 +860,6 @@ function WorkPage({ apiUrl }) {
 
                 </div>
             )}
-
-            {/* =================================================
-                STATISTICS
-            ================================================= */}
 
             <div className="work-stats">
 
@@ -852,10 +909,6 @@ function WorkPage({ apiUrl }) {
                 />
 
             </div>
-
-            {/* =================================================
-                TOOLBAR
-            ================================================= */}
 
             <div className="work-toolbar">
 
@@ -964,10 +1017,6 @@ function WorkPage({ apiUrl }) {
 
                 </div>
 
-                {/* =================================================
-                    DATE FILTER
-                ================================================= */}
-
                 <div className="work-date-filters">
 
                     <button
@@ -1044,10 +1093,6 @@ function WorkPage({ apiUrl }) {
 
             </div>
 
-            {/* =================================================
-                TASK LIST
-            ================================================= */}
-
             <div className="work-list-card">
 
                 <div className="work-list-header">
@@ -1063,11 +1108,13 @@ function WorkPage({ apiUrl }) {
                     </div>
 
                     <div className="work-result-count">
+
                         {filteredTasks.length}
 
                         <small>
                             / {tasks.length}
                         </small>
+
                     </div>
 
                 </div>
@@ -1199,8 +1246,6 @@ function WorkPage({ apiUrl }) {
                             }
                         >
 
-                            {/* TITLE */}
-
                             <div className="work-form-group">
 
                                 <label>
@@ -1228,8 +1273,6 @@ function WorkPage({ apiUrl }) {
 
                             </div>
 
-                            {/* DESCRIPTION */}
-
                             <div className="work-form-group">
 
                                 <label>
@@ -1249,8 +1292,6 @@ function WorkPage({ apiUrl }) {
                                 />
 
                             </div>
-
-                            {/* STATUS / PRIORITY */}
 
                             <div className="work-form-row">
 
@@ -1330,7 +1371,9 @@ function WorkPage({ apiUrl }) {
 
                             </div>
 
-                            {/* DUE DATE */}
+                            {/* =================================================
+                                DUE DATE
+                            ================================================= */}
 
                             <div className="work-form-group">
 
@@ -1415,8 +1458,6 @@ function WorkPage({ apiUrl }) {
                                 </div>
 
                             </div>
-
-                            {/* FOOTER */}
 
                             <div className="work-form-footer">
 
@@ -1563,15 +1604,18 @@ function WorkStat({
     label,
     type
 }) {
+
     return (
         <div
             className={`work-stat work-stat-${type}`}
         >
+
             <div className="work-stat-icon">
                 {icon}
             </div>
 
             <div className="work-stat-info">
+
                 <strong>
                     {value}
                 </strong>
@@ -1579,7 +1623,9 @@ function WorkStat({
                 <span>
                     {label}
                 </span>
+
             </div>
+
         </div>
     );
 }
@@ -1594,6 +1640,7 @@ function TaskItem({
     onEdit,
     onDelete
 }) {
+
     const completed =
         task.status === "completed";
 
@@ -1737,6 +1784,7 @@ function TaskItem({
 ========================================================= */
 
 function StatusBadge({ status }) {
+
     const data =
         STATUS_OPTIONS.find(
             (item) =>
@@ -1764,6 +1812,7 @@ function StatusBadge({ status }) {
 function PriorityBadge({
     priority
 }) {
+
     const data =
         PRIORITY_OPTIONS.find(
             (item) =>
@@ -1777,6 +1826,7 @@ function PriorityBadge({
         <span
             className={`priority-badge priority-badge-${priority}`}
         >
+
             {priority ===
                 "urgent" && "🔥"}
 
@@ -1791,6 +1841,7 @@ function PriorityBadge({
 
             {" "}
             {label}
+
         </span>
     );
 }
@@ -1803,14 +1854,11 @@ function DueDate({
     date,
     completed
 }) {
-    const parsed =
-        new Date(date);
 
-    if (
-        Number.isNaN(
-            parsed.getTime()
-        )
-    ) {
+    const parsed =
+        parseDate(date);
+
+    if (!parsed) {
         return null;
     }
 
@@ -1819,7 +1867,8 @@ function DueDate({
 
     const overdue =
         !completed &&
-        parsed < now;
+        parsed.getTime() <
+            now.getTime();
 
     return (
         <span
@@ -1832,11 +1881,13 @@ function DueDate({
                 .filter(Boolean)
                 .join(" ")}
         >
+
             {overdue
                 ? "⚠ Quá hạn "
                 : "📅 "}
 
             {formatDateTime(date)}
+
         </span>
     );
 }
@@ -1850,6 +1901,7 @@ function TaskEmpty({
     onAdd,
     onClear
 }) {
+
     return (
         <div className="task-empty">
 
@@ -1900,6 +1952,7 @@ function TaskEmpty({
 ========================================================= */
 
 function TaskLoading() {
+
     return (
         <div className="task-loading">
 
@@ -1918,118 +1971,352 @@ function TaskLoading() {
 }
 
 /* =========================================================
-   HELPERS
+   DATE PARSER
+========================================================= */
+
+/*
+ * PostgreSQL timestamp with time zone có thể trả về:
+ *
+ * 2026-08-14T01:50:00.000Z
+ *
+ * hoặc:
+ *
+ * 2026-08-14T08:50:00+07:00
+ *
+ * Cả hai đều được new Date() xử lý đúng thành một thời điểm.
+ */
+
+function parseDate(value) {
+
+    if (!value) {
+        return null;
+    }
+
+    const parsed =
+        new Date(value);
+
+    if (
+        Number.isNaN(
+            parsed.getTime()
+        )
+    ) {
+        return null;
+    }
+
+    return parsed;
+}
+
+/* =========================================================
+   FORMAT DATE - VIETNAM
 ========================================================= */
 
 function formatDate(date) {
-    if (!date) {
-        return "";
-    }
 
     const parsed =
-        new Date(date);
+        parseDate(date);
 
-    if (
-        Number.isNaN(
-            parsed.getTime()
-        )
-    ) {
+    if (!parsed) {
         return "";
     }
 
-    return parsed.toLocaleDateString(
-        "vi-VN",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-        }
-    );
+    try {
+
+        return new Intl.DateTimeFormat(
+            "vi-VN",
+            {
+                timeZone:
+                    APP_TIMEZONE,
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            }
+        ).format(parsed);
+
+    } catch (error) {
+
+        console.error(
+            "FORMAT DATE ERROR:",
+            error
+        );
+
+        return "";
+    }
 }
 
+/* =========================================================
+   FORMAT DATE + TIME - VIETNAM
+========================================================= */
+
 function formatDateTime(date) {
-    if (!date) {
-        return "";
-    }
 
     const parsed =
-        new Date(date);
+        parseDate(date);
 
-    if (
-        Number.isNaN(
-            parsed.getTime()
-        )
-    ) {
+    if (!parsed) {
         return "";
     }
 
-    return parsed.toLocaleString(
-        "vi-VN",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        }
+    try {
+
+        return new Intl.DateTimeFormat(
+            "vi-VN",
+            {
+                timeZone:
+                    APP_TIMEZONE,
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            }
+        ).format(parsed);
+
+    } catch (error) {
+
+        console.error(
+            "FORMAT DATE TIME ERROR:",
+            error
+        );
+
+        return "";
+    }
+}
+
+/* =========================================================
+   VIETNAM DATE + TIME -> ISO
+========================================================= */
+
+/*
+ * QUAN TRỌNG
+ *
+ * Không dùng timezone của browser.
+ *
+ * Luôn coi input của WorkPage là giờ Việt Nam:
+ *
+ * 2026-08-14
+ * 08:50
+ *
+ * => 
+ *
+ * 2026-08-14T08:50:00+07:00
+ *
+ * PostgreSQL timestamptz sẽ lưu:
+ *
+ * 2026-08-14T01:50:00.000Z
+ *
+ * Đây là cùng một thời điểm.
+ */
+
+function vietnamDateTimeToISO(
+    date,
+    time
+) {
+
+    if (!date) {
+        return null;
+    }
+
+    const safeTime =
+        time || "23:59";
+
+    const dateParts =
+        date.split("-");
+
+    const timeParts =
+        safeTime.split(":");
+
+    const year =
+        dateParts[0];
+
+    const month =
+        dateParts[1];
+
+    const day =
+        dateParts[2];
+
+    const hours =
+        timeParts[0];
+
+    const minutes =
+        timeParts[1];
+
+    if (
+        !year ||
+        !month ||
+        !day ||
+        hours === undefined ||
+        minutes === undefined
+    ) {
+        return null;
+    }
+
+    return (
+        `${year}-${month}-${day}` +
+        `T${hours}:${minutes}:00` +
+        `+07:00`
     );
 }
 
 /* =========================================================
-   SPLIT DATE + TIME
+   SPLIT POSTGRES DATE -> VIETNAM DATE + TIME
 ========================================================= */
 
-function splitDateTime(date) {
-    if (!date) {
-        return {
-            date: "",
-            time: ""
-        };
-    }
+function splitDateTimeVietnam(
+    date
+) {
 
     const parsed =
-        new Date(date);
+        parseDate(date);
 
-    if (
-        Number.isNaN(
-            parsed.getTime()
-        )
-    ) {
+    if (!parsed) {
+
         return {
             date: "",
             time: ""
         };
     }
 
-    const year =
-        parsed.getFullYear();
+    try {
 
-    const month =
-        String(
-            parsed.getMonth() + 1
-        ).padStart(2, "0");
+        const formatter =
+            new Intl.DateTimeFormat(
+                "en-CA",
+                {
+                    timeZone:
+                        APP_TIMEZONE,
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hourCycle: "h23"
+                }
+            );
 
-    const day =
-        String(
-            parsed.getDate()
-        ).padStart(2, "0");
+        const parts =
+            formatter.formatToParts(
+                parsed
+            );
 
-    const hours =
-        String(
-            parsed.getHours()
-        ).padStart(2, "0");
+        const values = {};
 
-    const minutes =
-        String(
-            parsed.getMinutes()
-        ).padStart(2, "0");
+        parts.forEach((part) => {
 
-    return {
-        date:
-            `${year}-${month}-${day}`,
-        time:
-            `${hours}:${minutes}`
-    };
+            if (
+                part.type !==
+                "literal"
+            ) {
+                values[part.type] =
+                    part.value;
+            }
+
+        });
+
+        return {
+            date:
+                `${values.year}-${values.month}-${values.day}`,
+
+            time:
+                `${values.hour}:${values.minute}`
+        };
+
+    } catch (error) {
+
+        console.error(
+            "SPLIT VIETNAM DATE ERROR:",
+            error
+        );
+
+        return {
+            date: "",
+            time: ""
+        };
+    }
+}
+
+/* =========================================================
+   GET VIETNAM DATE PARTS
+========================================================= */
+
+function getVietnamDateParts(
+    date
+) {
+
+    const parsed =
+        parseDate(date);
+
+    if (!parsed) {
+        return null;
+    }
+
+    try {
+
+        const formatter =
+            new Intl.DateTimeFormat(
+                "en-CA",
+                {
+                    timeZone:
+                        APP_TIMEZONE,
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit"
+                }
+            );
+
+        const parts =
+            formatter.formatToParts(
+                parsed
+            );
+
+        const values = {};
+
+        parts.forEach((part) => {
+
+            if (
+                part.type !==
+                "literal"
+            ) {
+                values[part.type] =
+                    part.value;
+            }
+
+        });
+
+        return {
+            year:
+                values.year,
+
+            month:
+                values.month,
+
+            day:
+                values.day
+        };
+
+    } catch (error) {
+
+        return null;
+    }
+}
+
+/* =========================================================
+   DATE TO DAY NUMBER
+========================================================= */
+
+function vietnamDateToDayNumber(
+    year,
+    month,
+    day
+) {
+
+    return Math.floor(
+        Date.UTC(
+            Number(year),
+            Number(month) - 1,
+            Number(day)
+        ) / 86400000
+    );
 }
 
 /* =========================================================
@@ -2037,6 +2324,7 @@ function splitDateTime(date) {
 ========================================================= */
 
 function formatInputDate(date) {
+
     if (!date) {
         return "";
     }
@@ -2044,11 +2332,17 @@ function formatInputDate(date) {
     const parts =
         date.split("-");
 
-    if (parts.length !== 3) {
+    if (
+        parts.length !== 3
+    ) {
         return date;
     }
 
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return (
+        `${parts[2]}/` +
+        `${parts[1]}/` +
+        `${parts[0]}`
+    );
 }
 
 /* =========================================================
