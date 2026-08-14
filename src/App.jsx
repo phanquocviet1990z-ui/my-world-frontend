@@ -104,59 +104,53 @@ APP
 ========================================================= */
 
 function App() {
-    const [activePage, setActivePage] = useState("home");
+    const [activePage, setActivePage] =
+        useState("home");
 
-    const [loginOpen, setLoginOpen] = useState(false);
+    const [loginOpen, setLoginOpen] =
+        useState(false);
 
-    /*
-     * =====================================================
-     * USER DUY NHẤT CỦA TOÀN APP
-     *
-     * Account.jsx không tạo user riêng.
-     *
-     * Khi avatar thay đổi:
-     *
-     * Account
-     *    ↓
-     * onUserUpdated(updatedUser)
-     *    ↓
-     * setUser(current => ({ ...current, ...updatedUser }))
-     *    ↓
-     * Sidebar / Topbar / Account cập nhật
-     *
-     * Quan trọng:
-     * Không thay toàn bộ user bằng updatedUser một cách mù quáng.
-     * Merge với user cũ để tránh mất các field khác.
-     * =====================================================
-     */
-    const [user, setUser] = useState(null);
+    const [user, setUser] =
+        useState(null);
 
-    const [checkingLogin, setCheckingLogin] = useState(true);
+    const [checkingLogin, setCheckingLogin] =
+        useState(true);
 
     /* =====================================================
     NOTIFICATIONS
     ===================================================== */
 
-    const [notifications, setNotifications] = useState([]);
+    const [notifications, setNotifications] =
+        useState([]);
 
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadCount, setUnreadCount] =
+        useState(0);
 
     const [notificationOpen, setNotificationOpen] =
         useState(false);
 
-    const notificationRef = useRef(null);
+    const notificationRef =
+        useRef(null);
 
     /* =====================================================
     NOTIFICATION AUDIO
     ===================================================== */
 
-    const audioContextRef = useRef(null);
+    const audioContextRef =
+        useRef(null);
 
-    const audioUnlockedRef = useRef(false);
+    const audioUnlockedRef =
+        useRef(false);
 
-    const knownNotificationIdsRef = useRef(new Set());
+    /* =====================================================
+    NOTIFICATION TRACKING
+    ===================================================== */
 
-    const notificationInitializedRef = useRef(false);
+    const knownNotificationIdsRef =
+        useRef(new Set());
+
+    const notificationInitializedRef =
+        useRef(false);
 
     /* =====================================================
     AUTH
@@ -164,23 +158,26 @@ function App() {
 
     async function checkLogin() {
         try {
-            const response = await fetch(
-                `${API_URL}/api/me`,
-                {
-                    method: "GET",
-                    credentials: "include",
-                    headers: {
-                        Accept: "application/json"
+            const response =
+                await fetch(
+                    `${API_URL}/api/me`,
+                    {
+                        method: "GET",
+                        credentials: "include",
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
                     }
-                }
-            );
+                );
 
             if (!response.ok) {
                 setUser(null);
                 return;
             }
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (
                 data.success &&
@@ -217,7 +214,10 @@ function App() {
             const loginStatus =
                 params.get("login");
 
-            if (loginStatus === "success") {
+            if (
+                loginStatus ===
+                "success"
+            ) {
                 window.history.replaceState(
                     {},
                     document.title,
@@ -225,7 +225,6 @@ function App() {
                 );
 
                 await checkLogin();
-
                 return;
             }
 
@@ -244,7 +243,6 @@ function App() {
                 );
 
                 await checkLogin();
-
                 return;
             }
 
@@ -263,7 +261,6 @@ function App() {
                 );
 
                 await checkLogin();
-
                 return;
             }
 
@@ -287,7 +284,9 @@ function App() {
                 return;
             }
 
-            if (!audioContextRef.current) {
+            if (
+                !audioContextRef.current
+            ) {
                 audioContextRef.current =
                     new AudioContext();
             }
@@ -299,10 +298,13 @@ function App() {
                 context.state ===
                 "suspended"
             ) {
-                context.resume();
+                context.resume().catch(
+                    () => {}
+                );
             }
 
-            audioUnlockedRef.current = true;
+            audioUnlockedRef.current =
+                true;
         } catch (error) {
             console.warn(
                 "NOTIFICATION AUDIO UNLOCK ERROR:",
@@ -312,7 +314,7 @@ function App() {
     }
 
     /* =====================================================
-    USER INTERACTION -> UNLOCK AUDIO
+    USER INTERACTION
     ===================================================== */
 
     useEffect(() => {
@@ -368,7 +370,9 @@ function App() {
 
     function playNotificationSound() {
         try {
-            if (!audioUnlockedRef.current) {
+            if (
+                !audioUnlockedRef.current
+            ) {
                 unlockNotificationAudio();
             }
 
@@ -383,7 +387,9 @@ function App() {
                 context.state ===
                 "suspended"
             ) {
-                context.resume().catch(() => {});
+                context
+                    .resume()
+                    .catch(() => {});
             }
 
             const now =
@@ -393,7 +399,7 @@ function App() {
                 context,
                 now,
                 880,
-                0.0,
+                0,
                 0.11,
                 0.055
             );
@@ -438,7 +444,8 @@ function App() {
             const gain =
                 context.createGain();
 
-            oscillator.type = "sine";
+            oscillator.type =
+                "sine";
 
             oscillator.frequency.setValueAtTime(
                 frequency,
@@ -465,7 +472,6 @@ function App() {
             );
 
             oscillator.connect(gain);
-
             gain.connect(
                 context.destination
             );
@@ -499,6 +505,10 @@ function App() {
             if (
                 !("Notification" in window)
             ) {
+                console.warn(
+                    "DESKTOP NOTIFICATION: Browser không hỗ trợ."
+                );
+
                 return;
             }
 
@@ -537,7 +547,8 @@ function App() {
                     title,
                     {
                         body,
-                        icon: "/favicon.ico",
+                        icon:
+                            "/favicon.ico",
                         tag:
                             "my-world-notification-" +
                             notification.id
@@ -549,7 +560,9 @@ function App() {
 
                 desktop.close();
 
-                setNotificationOpen(true);
+                setNotificationOpen(
+                    true
+                );
             };
         } catch (error) {
             console.warn(
@@ -560,7 +573,7 @@ function App() {
     }
 
     /* =====================================================
-    NOTIFICATION STORAGE KEY
+    STORAGE KEY
     ===================================================== */
 
     function getNotificationStorageKey() {
@@ -577,7 +590,7 @@ function App() {
     }
 
     /* =====================================================
-    LOAD KNOWN NOTIFICATION IDS
+    LOAD KNOWN IDS
     ===================================================== */
 
     function loadKnownNotificationIds() {
@@ -620,7 +633,7 @@ function App() {
     }
 
     /* =====================================================
-    SAVE KNOWN NOTIFICATION IDS
+    SAVE KNOWN IDS
     ===================================================== */
 
     function saveKnownNotificationIds() {
@@ -633,12 +646,11 @@ function App() {
                     knownNotificationIdsRef.current
                 );
 
-            const trimmed =
-                ids.slice(-300);
-
             localStorage.setItem(
                 key,
-                JSON.stringify(trimmed)
+                JSON.stringify(
+                    ids.slice(-300)
+                )
             );
         } catch (error) {
             console.warn(
@@ -649,7 +661,56 @@ function App() {
     }
 
     /* =====================================================
-    REGISTER NOTIFICATIONS
+    NORMALIZE NOTIFICATION RESPONSE
+    ===================================================== */
+
+    function extractNotifications(
+        data
+    ) {
+        if (
+            Array.isArray(data)
+        ) {
+            return data;
+        }
+
+        if (
+            Array.isArray(
+                data?.notifications
+            )
+        ) {
+            return data.notifications;
+        }
+
+        if (
+            Array.isArray(
+                data?.data?.notifications
+            )
+        ) {
+            return data.data.notifications;
+        }
+
+        if (
+            Array.isArray(
+                data?.data
+            )
+        ) {
+            return data.data;
+        }
+
+        return [];
+    }
+
+    /* =====================================================
+    PROCESS INCOMING NOTIFICATIONS
+
+    QUAN TRỌNG:
+    LẦN FETCH ĐẦU TIÊN CHỈ ĐỒNG BỘ ID CŨ.
+
+    Những notification đã có từ trước
+    không phát âm thanh.
+
+    Notification mới xuất hiện sau đó
+    sẽ phát âm thanh + desktop notification.
     ===================================================== */
 
     function processIncomingNotifications(
@@ -663,21 +724,31 @@ function App() {
             return;
         }
 
+        const currentIds =
+            incomingNotifications
+                .filter(
+                    (item) =>
+                        item?.id !==
+                        undefined &&
+                        item?.id !== null
+                )
+                .map((item) =>
+                    String(item.id)
+                );
+
+        /* ==============================================
+        LẦN ĐẦU:
+        chỉ đồng bộ ID.
+        ============================================== */
+
         if (
             !notificationInitializedRef.current
         ) {
-            incomingNotifications.forEach(
-                (notification) => {
-                    if (
-                        notification?.id !==
-                        undefined
-                    ) {
-                        knownNotificationIdsRef.current.add(
-                            String(
-                                notification.id
-                            )
-                        );
-                    }
+            currentIds.forEach(
+                (id) => {
+                    knownNotificationIdsRef.current.add(
+                        id
+                    );
                 }
             );
 
@@ -686,15 +757,26 @@ function App() {
 
             saveKnownNotificationIds();
 
+            console.log(
+                "🔔 NOTIFICATION INITIALIZED:",
+                incomingNotifications.length
+            );
+
             return;
         }
+
+        /* ==============================================
+        TÌM NOTIFICATION MỚI
+        ============================================== */
 
         const newNotifications =
             incomingNotifications.filter(
                 (notification) => {
                     if (
                         notification?.id ===
-                        undefined
+                            undefined ||
+                        notification?.id ===
+                            null
                     ) {
                         return false;
                     }
@@ -707,9 +789,16 @@ function App() {
                 }
             );
 
-        if (!newNotifications.length) {
+        if (
+            !newNotifications.length
+        ) {
             return;
         }
+
+        console.log(
+            "🔔 NEW NOTIFICATIONS:",
+            newNotifications
+        );
 
         newNotifications.forEach(
             (notification) => {
@@ -723,7 +812,15 @@ function App() {
 
         saveKnownNotificationIds();
 
+        /* ==============================================
+        ÂM THANH
+        ============================================== */
+
         playNotificationSound();
+
+        /* ==============================================
+        DESKTOP
+        ============================================== */
 
         const newestNotification =
             newNotifications[
@@ -743,7 +840,6 @@ function App() {
         if (!user) {
             setNotifications([]);
             setUnreadCount(0);
-
             return;
         }
 
@@ -754,47 +850,86 @@ function App() {
                     {
                         method: "GET",
                         credentials: "include",
+                        cache: "no-store",
                         headers: {
                             Accept:
-                                "application/json"
+                                "application/json",
+                            "Cache-Control":
+                                "no-cache"
                         }
                     }
                 );
+
+            console.log(
+                "🔔 NOTIFICATION RESPONSE:",
+                response.status
+            );
 
             if (
                 response.status ===
                 401
             ) {
+                console.warn(
+                    "🔔 NOTIFICATION: Session hết hạn."
+                );
+
+                return;
+            }
+
+            if (!response.ok) {
+                console.error(
+                    "🔔 NOTIFICATION API ERROR:",
+                    response.status,
+                    response.statusText
+                );
+
                 return;
             }
 
             const data =
                 await response.json();
 
-            if (
-                data.success &&
-                Array.isArray(
-                    data.notifications
-                )
-            ) {
-                processIncomingNotifications(
-                    data.notifications
+            console.log(
+                "🔔 NOTIFICATION DATA:",
+                data
+            );
+
+            const list =
+                extractNotifications(
+                    data
                 );
 
-                setNotifications(
-                    data.notifications
-                );
+            console.log(
+                "🔔 NOTIFICATION LIST:",
+                list
+            );
 
-                const count =
-                    data.notifications.filter(
-                        (item) =>
-                            Number(
-                                item.is_read
-                            ) === 0
-                    ).length;
+            processIncomingNotifications(
+                list
+            );
 
-                setUnreadCount(count);
-            }
+            setNotifications(
+                list
+            );
+
+            const count =
+                list.filter(
+                    (item) =>
+                        Number(
+                            item?.is_read
+                        ) === 0 ||
+                        item?.is_read ===
+                            false
+                ).length;
+
+            setUnreadCount(count);
+
+            console.log(
+                "🔔 NOTIFICATION COUNT:",
+                list.length,
+                "UNREAD:",
+                count
+            );
         } catch (error) {
             console.error(
                 "FETCH NOTIFICATIONS ERROR:",
@@ -804,7 +939,7 @@ function App() {
     }
 
     /* =====================================================
-    LOAD NOTIFICATIONS WHEN LOGIN
+    LOGIN -> LOAD NOTIFICATIONS
     ===================================================== */
 
     useEffect(() => {
@@ -822,10 +957,17 @@ function App() {
             return;
         }
 
-        loadKnownNotificationIds();
+        /*
+         * User vừa đăng nhập:
+         * reset trạng thái tracking.
+         */
+        knownNotificationIdsRef.current =
+            new Set();
 
         notificationInitializedRef.current =
             false;
+
+        loadKnownNotificationIds();
 
         fetchNotifications();
     }, [user]);
@@ -839,6 +981,10 @@ function App() {
             return;
         }
 
+        console.log(
+            "🔔 NOTIFICATION POLLING: STARTED - 5 SECONDS"
+        );
+
         const notificationInterval =
             setInterval(() => {
                 fetchNotifications();
@@ -848,22 +994,30 @@ function App() {
             clearInterval(
                 notificationInterval
             );
+
+            console.log(
+                "🔔 NOTIFICATION POLLING: STOPPED"
+            );
         };
     }, [user]);
 
     /* =====================================================
-    CLOSE NOTIFICATION DROPDOWN
+    CLOSE DROPDOWN
     ===================================================== */
 
     useEffect(() => {
-        function handleClickOutside(event) {
+        function handleClickOutside(
+            event
+        ) {
             if (
                 notificationRef.current &&
                 !notificationRef.current.contains(
                     event.target
                 )
             ) {
-                setNotificationOpen(false);
+                setNotificationOpen(
+                    false
+                );
             }
         }
 
@@ -890,7 +1044,9 @@ function App() {
         const nextState =
             !notificationOpen;
 
-        setNotificationOpen(nextState);
+        setNotificationOpen(
+            nextState
+        );
 
         if (nextState) {
             await fetchNotifications();
@@ -898,7 +1054,7 @@ function App() {
     }
 
     /* =====================================================
-    MARK ONE NOTIFICATION AS READ
+    MARK ONE READ
     ===================================================== */
 
     async function markNotificationRead(
@@ -908,13 +1064,23 @@ function App() {
             const target =
                 notifications.find(
                     (item) =>
-                        String(item.id) ===
-                        String(notificationId)
+                        String(
+                            item.id
+                        ) ===
+                        String(
+                            notificationId
+                        )
                 );
 
             const wasUnread =
                 target &&
-                Number(target.is_read) === 0;
+                (
+                    Number(
+                        target.is_read
+                    ) === 0 ||
+                    target.is_read ===
+                        false
+                );
 
             const response =
                 await fetch(
@@ -929,6 +1095,12 @@ function App() {
                     }
                 );
 
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
             const data =
                 await response.json();
 
@@ -936,7 +1108,9 @@ function App() {
                 setNotifications(
                     (current) =>
                         current.map(
-                            (notification) =>
+                            (
+                                notification
+                            ) =>
                                 String(
                                     notification.id
                                 ) ===
@@ -970,11 +1144,13 @@ function App() {
     }
 
     /* =====================================================
-    MARK ALL AS READ
+    MARK ALL READ
     ===================================================== */
 
     async function markAllNotificationsRead() {
-        if (unreadCount === 0) {
+        if (
+            unreadCount === 0
+        ) {
             return;
         }
 
@@ -992,6 +1168,12 @@ function App() {
                     }
                 );
 
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
             const data =
                 await response.json();
 
@@ -999,7 +1181,9 @@ function App() {
                 setNotifications(
                     (current) =>
                         current.map(
-                            (notification) => ({
+                            (
+                                notification
+                            ) => ({
                                 ...notification,
                                 is_read: 1
                             })
@@ -1027,8 +1211,12 @@ function App() {
             const notification =
                 notifications.find(
                     (item) =>
-                        String(item.id) ===
-                        String(notificationId)
+                        String(
+                            item.id
+                        ) ===
+                        String(
+                            notificationId
+                        )
                 );
 
             const response =
@@ -1044,6 +1232,12 @@ function App() {
                     }
                 );
 
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
             const data =
                 await response.json();
 
@@ -1052,7 +1246,9 @@ function App() {
                     (current) =>
                         current.filter(
                             (item) =>
-                                String(item.id) !==
+                                String(
+                                    item.id
+                                ) !==
                                 String(
                                     notificationId
                                 )
@@ -1061,9 +1257,13 @@ function App() {
 
                 if (
                     notification &&
-                    Number(
-                        notification.is_read
-                    ) === 0
+                    (
+                        Number(
+                            notification.is_read
+                        ) === 0 ||
+                        notification.is_read ===
+                            false
+                    )
                 ) {
                     setUnreadCount(
                         (current) =>
@@ -1088,11 +1288,12 @@ function App() {
 
     function openPage(page) {
         if (
-            PRIVATE_PAGES.includes(page) &&
+            PRIVATE_PAGES.includes(
+                page
+            ) &&
             !user
         ) {
             setLoginOpen(true);
-
             return;
         }
 
@@ -1148,7 +1349,9 @@ function App() {
 
                 setLoginOpen(false);
 
-                setNotificationOpen(false);
+                setNotificationOpen(
+                    false
+                );
 
                 setNotifications([]);
 
@@ -1250,7 +1453,9 @@ function App() {
                                 "work"
                             }
                             onClick={() =>
-                                openPage("work")
+                                openPage(
+                                    "work"
+                                )
                             }
                         />
 
@@ -1263,7 +1468,9 @@ function App() {
                                 "notes"
                             }
                             onClick={() =>
-                                openPage("notes")
+                                openPage(
+                                    "notes"
+                                )
                             }
                         />
 
@@ -1838,14 +2045,16 @@ function NotificationDropdown({
                         </strong>
 
                         <span>
-                            {unreadCount > 0
+                            {unreadCount >
+                            0
                                 ? `${unreadCount} chưa đọc`
                                 : "Tất cả đã đọc"}
                         </span>
                     </div>
                 </div>
 
-                {unreadCount > 0 && (
+                {unreadCount >
+                    0 && (
                     <button
                         type="button"
                         className="notification-read-all"
@@ -1876,7 +2085,9 @@ function NotificationDropdown({
                     </div>
                 ) : (
                     notifications.map(
-                        (notification) => (
+                        (
+                            notification
+                        ) => (
                             <NotificationItem
                                 key={
                                     notification.id
@@ -1896,7 +2107,8 @@ function NotificationDropdown({
                 )}
             </div>
 
-            {notifications.length > 0 && (
+            {notifications.length >
+                0 && (
                 <div className="notification-dropdown-footer">
                     Hiển thị tối đa 50 thông báo gần nhất
                 </div>
@@ -1915,13 +2127,19 @@ function NotificationItem({
     onDelete
 }) {
     const isUnread =
-        Number(notification.is_read) === 0;
+        Number(
+            notification?.is_read
+        ) === 0 ||
+        notification?.is_read ===
+            false;
 
     return (
         <div
             className={[
                 "notification-item",
-                isUnread ? "unread" : ""
+                isUnread
+                    ? "unread"
+                    : ""
             ]
                 .filter(Boolean)
                 .join(" ")}
@@ -1972,7 +2190,9 @@ function NotificationItem({
             <button
                 type="button"
                 className="notification-delete"
-                onClick={(event) => {
+                onClick={(
+                    event
+                ) => {
                     event.stopPropagation();
 
                     onDelete(
@@ -1992,73 +2212,45 @@ function NotificationItem({
 PARSE NOTIFICATION DATE
 ===================================================== */
 
-function parseNotificationDate(value) {
+function parseNotificationDate(
+    value
+) {
     if (!value) {
         return null;
     }
 
-    /*
-     * Đã là Date
-     */
     if (value instanceof Date) {
-        return Number.isNaN(value.getTime())
+        return Number.isNaN(
+            value.getTime()
+        )
             ? null
             : value;
     }
 
-    let text = String(value).trim();
+    let text =
+        String(value).trim();
 
     if (!text) {
         return null;
     }
 
-    /*
-     * PostgreSQL timestamptz có thể trả:
-     *
-     * 2026-08-14 01:33:01.131389+00
-     *
-     * JavaScript Date chỉ dùng milliseconds,
-     * nên cắt microseconds còn 3 số.
-     */
     text = text.replace(
         /(\.\d{3})\d+/,
         "$1"
     );
 
-    /*
-     * PostgreSQL:
-     *
-     * 2026-08-14 01:33:01.131+00
-     *
-     * chuyển thành:
-     *
-     * 2026-08-14T01:33:01.131+00
-     */
     text = text.replace(
         /^(\d{4}-\d{2}-\d{2})\s+/,
         "$1T"
     );
 
-    /*
-     * Có timezone rõ ràng:
-     *
-     * +00
-     * +00:00
-     * -07:00
-     * Z
-     *
-     * => giữ nguyên timezone.
-     */
     if (
         /[zZ]$/.test(text) ||
-        /[+-]\d{2}:?\d{2}$/.test(text)
+        /[+-]\d{2}:?\d{2}$/.test(
+            text
+        ) ||
+        /[+-]\d{2}$/.test(text)
     ) {
-        /*
-         * Một số trường hợp PostgreSQL trả +00
-         * thay vì +00:00.
-         *
-         * Chuẩn hóa thành +00:00.
-         */
         text = text.replace(
             /([+-]\d{2})$/,
             "$1:00"
@@ -2076,15 +2268,6 @@ function parseNotificationDate(value) {
         }
     }
 
-    /*
-     * Trường hợp backend trả timestamp
-     * KHÔNG có timezone.
-     *
-     * Quy ước của MY WORLD:
-     *
-     * timestamp không timezone
-     * = UTC
-     */
     const match =
         text.match(
             /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
@@ -2111,11 +2294,13 @@ function parseNotificationDate(value) {
 
         const millisecond =
             Number(
-                (match[7] || "0")
-                    .padEnd(3, "0")
+                (
+                    match[7] ||
+                    "0"
+                ).padEnd(3, "0")
             );
 
-        const utcTime =
+        return new Date(
             Date.UTC(
                 year,
                 month - 1,
@@ -2124,23 +2309,10 @@ function parseNotificationDate(value) {
                 minute,
                 second,
                 millisecond
-            );
-
-        const utcDate =
-            new Date(utcTime);
-
-        if (
-            !Number.isNaN(
-                utcDate.getTime()
             )
-        ) {
-            return utcDate;
-        }
+        );
     }
 
-    /*
-     * Fallback
-     */
     const fallback =
         new Date(text);
 
@@ -2163,7 +2335,9 @@ function formatNotificationDate(
     }
 
     const date =
-        parseNotificationDate(value);
+        parseNotificationDate(
+            value
+        );
 
     if (!date) {
         return String(value);
@@ -2620,21 +2794,22 @@ function InnerPage({
     setLoginOpen,
     apiUrl
 }) {
-    const pageData = PAGES[page];
+    const pageData =
+        PAGES[page];
 
-    function handleUserUpdated(updatedUser) {
+    function handleUserUpdated(
+        updatedUser
+    ) {
         if (!updatedUser) {
             return;
         }
 
-        setUser((currentUser) => {
-            const nextUser = {
+        setUser(
+            (currentUser) => ({
                 ...(currentUser || {}),
                 ...updatedUser
-            };
-
-            return nextUser;
-        });
+            })
+        );
     }
 
     return (
@@ -2655,34 +2830,53 @@ function InnerPage({
                 </div>
 
                 <div className="inner-icon">
-                    {getPageIcon(page)}
+                    {getPageIcon(
+                        page
+                    )}
                 </div>
             </div>
 
-            {page === "work" && user ? (
+            {page === "work" &&
+            user ? (
                 <WorkPage
-                    apiUrl={apiUrl}
+                    apiUrl={
+                        apiUrl
+                    }
                 />
-            ) : page === "reminders" && user ? (
+            ) : page ===
+                  "reminders" &&
+              user ? (
                 <Reminders
-                    apiUrl={apiUrl}
+                    apiUrl={
+                        apiUrl
+                    }
                 />
-            ) : page === "account" && user ? (
+            ) : page ===
+                  "account" &&
+              user ? (
                 <Account
                     user={user}
                     logout={logout}
-                    apiUrl={apiUrl}
-                    onUserUpdated={handleUserUpdated}
+                    apiUrl={
+                        apiUrl
+                    }
+                    onUserUpdated={
+                        handleUserUpdated
+                    }
                 />
             ) : (
                 <div className="coming-card">
                     <div className="coming-icon">
-                        {getPageIcon(page)}
+                        {getPageIcon(
+                            page
+                        )}
                     </div>
 
                     <h2>
                         Không gian{" "}
-                        {pageData?.title}
+                        {
+                            pageData?.title
+                        }
                     </h2>
 
                     <p>
@@ -2691,12 +2885,16 @@ function InnerPage({
                     </p>
 
                     {!user &&
-                        PRIVATE_PAGES.includes(page) && (
+                        PRIVATE_PAGES.includes(
+                            page
+                        ) && (
                             <button
                                 type="button"
                                 className="primary-button"
                                 onClick={() =>
-                                    setLoginOpen(true)
+                                    setLoginOpen(
+                                        true
+                                    )
                                 }
                             >
                                 🔐 Đăng nhập để tiếp tục
@@ -2775,10 +2973,10 @@ function Avatar({ user }) {
         setImageError(false);
     }, [avatar]);
 
-    /*
-     * Không có avatar
-     */
-    if (!avatar || imageError) {
+    if (
+        !avatar ||
+        imageError
+    ) {
         return (
             <div className="avatar avatar-fallback">
                 👤
@@ -2786,29 +2984,34 @@ function Avatar({ user }) {
         );
     }
 
-    let avatarUrl = String(avatar).trim();
+    let avatarUrl =
+        String(avatar).trim();
 
-    /*
-     * Cloudinary / Google / Facebook:
-     *
-     * https://...
-     *
-     * giữ nguyên URL.
-     */
     if (
-        !avatarUrl.startsWith("http://") &&
-        !avatarUrl.startsWith("https://") &&
-        !avatarUrl.startsWith("data:") &&
-        !avatarUrl.startsWith("blob:")
+        !avatarUrl.startsWith(
+            "http://"
+        ) &&
+        !avatarUrl.startsWith(
+            "https://"
+        ) &&
+        !avatarUrl.startsWith(
+            "data:"
+        ) &&
+        !avatarUrl.startsWith(
+            "blob:"
+        )
     ) {
-        /*
-         * Chỉ xử lý đường dẫn tương đối
-         */
-        if (!avatarUrl.startsWith("/")) {
-            avatarUrl = `/${avatarUrl}`;
+        if (
+            !avatarUrl.startsWith(
+                "/"
+            )
+        ) {
+            avatarUrl =
+                `/${avatarUrl}`;
         }
 
-        avatarUrl = `${API_URL}${avatarUrl}`;
+        avatarUrl =
+            `${API_URL}${avatarUrl}`;
     }
 
     return (
@@ -2820,7 +3023,8 @@ function Avatar({ user }) {
             onError={(event) => {
                 console.error(
                     "AVATAR IMAGE ERROR:",
-                    event.currentTarget.src
+                    event.currentTarget
+                        .src
                 );
 
                 setImageError(true);
