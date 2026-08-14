@@ -1997,25 +1997,73 @@ function parseNotificationDate(value) {
         return null;
     }
 
+    /*
+     * Đã là Date
+     */
     if (value instanceof Date) {
-        return Number.isNaN(
-            value.getTime()
-        )
+        return Number.isNaN(value.getTime())
             ? null
             : value;
     }
 
-    const text =
-        String(value).trim();
+    let text = String(value).trim();
+
+    if (!text) {
+        return null;
+    }
 
     /*
-     * ISO có timezone rõ ràng.
+     * PostgreSQL timestamptz có thể trả:
+     *
+     * 2026-08-14 01:33:01.131389+00
+     *
+     * JavaScript Date chỉ dùng milliseconds,
+     * nên cắt microseconds còn 3 số.
      */
+    text = text.replace(
+        /(\.\d{3})\d+/,
+        "$1"
+    );
 
+    /*
+     * PostgreSQL:
+     *
+     * 2026-08-14 01:33:01.131+00
+     *
+     * chuyển thành:
+     *
+     * 2026-08-14T01:33:01.131+00
+     */
+    text = text.replace(
+        /^(\d{4}-\d{2}-\d{2})\s+/,
+        "$1T"
+    );
+
+    /*
+     * Có timezone rõ ràng:
+     *
+     * +00
+     * +00:00
+     * -07:00
+     * Z
+     *
+     * => giữ nguyên timezone.
+     */
     if (
         /[zZ]$/.test(text) ||
         /[+-]\d{2}:?\d{2}$/.test(text)
     ) {
+        /*
+         * Một số trường hợp PostgreSQL trả +00
+         * thay vì +00:00.
+         *
+         * Chuẩn hóa thành +00:00.
+         */
+        text = text.replace(
+            /([+-]\d{2})$/,
+            "$1:00"
+        );
+
         const parsed =
             new Date(text);
 
@@ -2029,19 +2077,18 @@ function parseNotificationDate(value) {
     }
 
     /*
-     * Database:
+     * Trường hợp backend trả timestamp
+     * KHÔNG có timezone.
      *
-     * 2026-08-12 00:49:12
-     * 2026-08-12T00:49:12
-     * 2026-08-12 00:49:12.123
+     * Quy ước của MY WORLD:
      *
-     * được xem là UTC.
+     * timestamp không timezone
+     * = UTC
      */
-
-   const match =
-    text.match(
-        /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
-    );
+    const match =
+        text.match(
+            /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
+        );
 
     if (match) {
         const year =
@@ -2091,6 +2138,9 @@ function parseNotificationDate(value) {
         }
     }
 
+    /*
+     * Fallback
+     */
     const fallback =
         new Date(text);
 
