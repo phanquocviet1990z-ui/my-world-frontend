@@ -286,21 +286,20 @@ function WorkPage({ apiUrl }) {
         }
 
         /* =================================================
-           TIMEZONE VIỆT NAM
-           
-           Ví dụ:
-           
-           Người dùng chọn:
-           14/08/2026
+           DUE DATE - VIỆT NAM -> UTC ISO
+
+           Input:
+           2026-08-14
            08:50
-           
+
+           Việt Nam:
+           2026-08-14 08:50 +07:00
+
            Gửi server:
-           2026-08-14T08:50:00+07:00
-           
-           PostgreSQL timestamptz sẽ lưu:
            2026-08-14T01:50:00.000Z
-           
-           Đây là ĐÚNG.
+
+           PostgreSQL timestamptz:
+           Đúng cùng một thời điểm.
         ================================================= */
 
         let dueDate = null;
@@ -315,6 +314,15 @@ function WorkPage({ apiUrl }) {
                     form.due_date,
                     selectedTime
                 );
+
+            if (!dueDate) {
+
+                setError(
+                    "Ngày hoặc giờ hết hạn không hợp lệ."
+                );
+
+                return;
+            }
         }
 
         console.log(
@@ -342,6 +350,11 @@ function WorkPage({ apiUrl }) {
                 due_date:
                     dueDate
             };
+
+            console.log(
+                "TASK PAYLOAD:",
+                payload
+            );
 
             const url = editingTask
                 ? `${apiUrl}/api/tasks/${editingTask.id}`
@@ -594,6 +607,10 @@ function WorkPage({ apiUrl }) {
 
         const task =
             getVietnamDateParts(parsed);
+
+        if (!today || !task) {
+            return "none";
+        }
 
         const todayKey =
             `${today.year}-${today.month}-${today.day}`;
@@ -1974,18 +1991,6 @@ function TaskLoading() {
    DATE PARSER
 ========================================================= */
 
-/*
- * PostgreSQL timestamp with time zone có thể trả về:
- *
- * 2026-08-14T01:50:00.000Z
- *
- * hoặc:
- *
- * 2026-08-14T08:50:00+07:00
- *
- * Cả hai đều được new Date() xử lý đúng thành một thời điểm.
- */
-
 function parseDate(value) {
 
     if (!value) {
@@ -2084,28 +2089,24 @@ function formatDateTime(date) {
 }
 
 /* =========================================================
-   VIETNAM DATE + TIME -> ISO
+   VIETNAM DATE + TIME -> UTC ISO
 ========================================================= */
 
 /*
- * QUAN TRỌNG
+ * FIX LỖI:
  *
- * Không dùng timezone của browser.
- *
- * Luôn coi input của WorkPage là giờ Việt Nam:
- *
- * 2026-08-14
- * 08:50
- *
- * => 
+ * Không gửi trực tiếp:
  *
  * 2026-08-14T08:50:00+07:00
  *
- * PostgreSQL timestamptz sẽ lưu:
+ * Mà chuyển thành ISO UTC chuẩn:
  *
  * 2026-08-14T01:50:00.000Z
  *
- * Đây là cùng một thời điểm.
+ * PostgreSQL / Neon timestamptz
+ * xử lý định dạng này ổn định.
+ *
+ * Input luôn được hiểu là giờ Việt Nam.
  */
 
 function vietnamDateTimeToISO(
@@ -2113,49 +2114,131 @@ function vietnamDateTimeToISO(
     time
 ) {
 
-    if (!date) {
+    if (
+        typeof date !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(date)
+    ) {
         return null;
     }
 
     const safeTime =
         time || "23:59";
 
-    const dateParts =
-        date.split("-");
-
-    const timeParts =
-        safeTime.split(":");
-
-    const year =
-        dateParts[0];
-
-    const month =
-        dateParts[1];
-
-    const day =
-        dateParts[2];
-
-    const hours =
-        timeParts[0];
-
-    const minutes =
-        timeParts[1];
-
     if (
-        !year ||
-        !month ||
-        !day ||
-        hours === undefined ||
-        minutes === undefined
+        typeof safeTime !== "string" ||
+        !/^\d{2}:\d{2}$/.test(safeTime)
     ) {
         return null;
     }
 
-    return (
-        `${year}-${month}-${day}` +
-        `T${hours}:${minutes}:00` +
-        `+07:00`
-    );
+    const [
+        yearString,
+        monthString,
+        dayString
+    ] = date.split("-");
+
+    const [
+        hourString,
+        minuteString
+    ] = safeTime.split(":");
+
+    const year =
+        Number(yearString);
+
+    const month =
+        Number(monthString);
+
+    const day =
+        Number(dayString);
+
+    const hour =
+        Number(hourString);
+
+    const minute =
+        Number(minuteString);
+
+    /* =====================================================
+       VALIDATE RANGE
+    ===================================================== */
+
+    if (
+        !Number.isInteger(year) ||
+        !Number.isInteger(month) ||
+        !Number.isInteger(day) ||
+        !Number.isInteger(hour) ||
+        !Number.isInteger(minute)
+    ) {
+        return null;
+    }
+
+    if (
+        month < 1 ||
+        month > 12 ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59
+    ) {
+        return null;
+    }
+
+    /* =====================================================
+       VALIDATE REAL CALENDAR DATE
+
+       Ví dụ:
+       2026-02-31 -> invalid
+    ===================================================== */
+
+    const checkDate =
+        new Date(
+            Date.UTC(
+                year,
+                month - 1,
+                day
+            )
+        );
+
+    if (
+        checkDate.getUTCFullYear() !== year ||
+        checkDate.getUTCMonth() !== month - 1 ||
+        checkDate.getUTCDate() !== day
+    ) {
+        return null;
+    }
+
+    /* =====================================================
+       VIỆT NAM = UTC+07:00
+
+       08:50 Việt Nam
+       -> 01:50 UTC
+    ===================================================== */
+
+    const utcMilliseconds =
+        Date.UTC(
+            year,
+            month - 1,
+            day,
+            hour,
+            minute,
+            0,
+            0
+        ) -
+        (7 * 60 * 60 * 1000);
+
+    const result =
+        new Date(
+            utcMilliseconds
+        );
+
+    if (
+        Number.isNaN(
+            result.getTime()
+        )
+    ) {
+        return null;
+    }
+
+    return result.toISOString();
 }
 
 /* =========================================================
@@ -2212,6 +2295,19 @@ function splitDateTimeVietnam(
             }
 
         });
+
+        if (
+            !values.year ||
+            !values.month ||
+            !values.day ||
+            !values.hour ||
+            !values.minute
+        ) {
+            return {
+                date: "",
+                time: ""
+            };
+        }
 
         return {
             date:
@@ -2283,6 +2379,14 @@ function getVietnamDateParts(
 
         });
 
+        if (
+            !values.year ||
+            !values.month ||
+            !values.day
+        ) {
+            return null;
+        }
+
         return {
             year:
                 values.year,
@@ -2295,6 +2399,11 @@ function getVietnamDateParts(
         };
 
     } catch (error) {
+
+        console.error(
+            "GET VIETNAM DATE PARTS ERROR:",
+            error
+        );
 
         return null;
     }
