@@ -3065,14 +3065,8 @@ body.dark .account-logout-button small {
 
 
 /* =========================================================
-/* =========================================================
    NOTIFICATION SYSTEM
    Dùng cho NotificationDropdown / NotificationItem hiện tại
-   ========================================================= */
-
-   MY WORLD - NOTIFICATION DROPDOWN OVERRIDE
-   Dùng cho NotificationDropdown / NotificationItem hiện tại
-   Giữ nguyên polling 5 giây và notification audio.
    ========================================================= */
 
 .notification-wrapper {
