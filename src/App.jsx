@@ -4,6 +4,7 @@ import "./App.css";
 import WorkPage from "./WorkPage";
 import Reminders from "./Reminders";
 import Account from "./Account";
+import Notes from "./Notes";
 
 /* =========================================================
 API
@@ -2841,40 +2842,50 @@ function InnerPage({
             </div>
 
             {page === "work" &&
-            user ? (
-                <WorkPage
-                    apiUrl={
-                        apiUrl
-                    }
-                />
-            ) : page ===
-                  "reminders" &&
-              user ? (
-                <Reminders
-                    apiUrl={
-                        apiUrl
-                    }
-                />
-            ) : page ===
-                  "account" &&
-              user ? (
-                <Account
-                    user={user}
-                    logout={logout}
-                    apiUrl={
-                        apiUrl
-                    }
-                    onUserUpdated={
-                        handleUserUpdated
-                    }
-                />
-            ) : (
-                <div className="coming-card">
-                    <div className="coming-icon">
-                        {getPageIcon(
-                            page
-                        )}
-                    </div>
+user ? (
+    <WorkPage
+        apiUrl={
+            apiUrl
+        }
+    />
+) : page ===
+      "notes" &&
+  user ? (
+    <Notes
+        apiUrl={
+            apiUrl
+        }
+    />
+) : page ===
+      "reminders" &&
+  user ? (
+    <Reminders
+        apiUrl={
+            apiUrl
+        }
+    />
+) : page ===
+      "account" &&
+  user ? (
+    <Account
+        user={user}
+        logout={logout}
+        apiUrl={
+            apiUrl
+        }
+        onUserUpdated={
+            handleUserUpdated
+        }
+    />
+) : (
+    <div className="coming-card">
+        <div className="coming-icon">
+            {getPageIcon(
+                page
+            )}
+        </div>
+                
+                    
 
                     <h2>
                         Không gian{" "}
