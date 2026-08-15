@@ -5010,3 +5010,389 @@ body.dark .notes-save-button:disabled,
     }
 
 }
+
+
+/* =========================================================
+   NOTES - EDITOR LAYOUT FIX
+   Hiển thị đầy đủ nút Xóa + Lưu
+========================================================= */
+
+.notes-workspace {
+    display: grid;
+    grid-template-columns: 365px minmax(0, 1fr);
+
+    width: 100%;
+    height: calc(100vh - 340px);
+    min-height: 520px;
+
+    border-radius: 22px;
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   EDITOR
+========================================================= */
+
+.notes-editor {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+
+    overflow: hidden;
+
+    position: relative;
+}
+
+
+/* =========================================================
+   EDITOR HEADER
+========================================================= */
+
+.notes-editor-header {
+    flex: 0 0 auto;
+}
+
+
+/* =========================================================
+   TITLE
+========================================================= */
+
+.notes-title-input {
+    flex: 0 0 auto;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    border: none;
+    outline: none;
+    background: transparent;
+
+    font-size: 32px;
+    font-weight: 800;
+
+    padding: 28px 30px 12px;
+
+    line-height: 1.2;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.notes-content-input {
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-height: 180px;
+
+    box-sizing: border-box;
+
+    border: none;
+    outline: none;
+    resize: none;
+
+    background: transparent;
+
+    padding: 8px 30px 24px;
+
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.7;
+
+    overflow-y: auto;
+}
+
+
+/* =========================================================
+   ATTACHMENTS
+========================================================= */
+
+.notes-attachments {
+    flex: 0 0 auto;
+
+    max-height: 210px;
+
+    overflow-y: auto;
+
+    padding: 0 30px 16px;
+}
+
+
+/* =========================================================
+   ATTACHMENT GRID
+========================================================= */
+
+.notes-attachment-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(150px, 1fr)
+        );
+
+    gap: 12px;
+}
+
+
+/* =========================================================
+   EDITOR FOOTER
+   LUÔN HIỂN THỊ
+========================================================= */
+
+.notes-editor-footer {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    min-height: 72px;
+
+    padding: 14px 24px;
+
+    border-top: 1px solid rgba(120, 140, 165, 0.18);
+
+    background: rgba(255, 255, 255, 0.96);
+
+    position: sticky;
+    bottom: 0;
+
+    z-index: 20;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   FOOTER LEFT
+========================================================= */
+
+.notes-editor-footer > div:first-child {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    min-width: 0;
+
+    color: #8a9bb0;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   FOOTER ACTIONS
+========================================================= */
+
+.notes-editor-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   DELETE
+========================================================= */
+
+.notes-delete-button {
+    width: 44px;
+    height: 44px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #e4e9f0;
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    cursor: pointer;
+
+    font-size: 17px;
+
+    transition:
+        transform 0.18s ease,
+        background 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.notes-delete-button:hover {
+    background: #fff1f1;
+
+    border-color: #ffb5b5;
+
+    transform: translateY(-1px);
+}
+
+.notes-delete-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+.notes-save-button {
+    min-width: 155px;
+    height: 44px;
+
+    padding: 0 20px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #1769c2;
+
+    color: #ffffff;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 18px rgba(23, 105, 194, 0.22);
+
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.notes-save-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 10px 24px rgba(23, 105, 194, 0.28);
+}
+
+.notes-save-button:disabled {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark .notes-editor-footer,
+.dark .notes-editor-footer {
+    background: #171e27;
+
+    border-top-color:
+        rgba(255, 255, 255, 0.08);
+}
+
+body.dark .notes-delete-button,
+.dark .notes-delete-button {
+    background: #202934;
+
+    border-color:
+        rgba(255, 255, 255, 0.08);
+
+    color: #ffffff;
+}
+
+body.dark .notes-delete-button:hover,
+.dark .notes-delete-button:hover {
+    background: #382326;
+
+    border-color: #7d4147;
+}
+
+body.dark .notes-save-button,
+.dark .notes-save-button {
+    background: #1769c2;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .notes-workspace {
+        grid-template-columns: 1fr;
+
+        height: auto;
+        min-height: 700px;
+    }
+
+    .notes-list {
+        max-height: 300px;
+    }
+
+    .notes-editor {
+        min-height: 650px;
+    }
+
+    .notes-editor-footer {
+        padding: 12px 16px;
+    }
+
+    .notes-title-input {
+        font-size: 27px;
+
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .notes-content-input {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .notes-attachments {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .notes-editor-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .notes-editor-footer > div:first-child {
+        justify-content: space-between;
+    }
+
+    .notes-editor-actions {
+        width: 100%;
+    }
+
+    .notes-delete-button {
+        width: 48px;
+    }
+
+    .notes-save-button {
+        flex: 1;
+    }
+
+}
