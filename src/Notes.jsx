@@ -1912,9 +1912,7 @@ function Notes({
                                                 ) => {
 
                                                     const url =
-                                                        getFileUrl(
-                                                            attachment.file_url
-                                                        );
+    `${apiUrl}/api/notes/${selectedNoteId}/attachments/${attachment.id}/file`;
 
 
                                                     return (
