@@ -94,6 +94,7 @@ function Notes({
 
         let data = null;
 
+
         try {
 
             data =
@@ -240,7 +241,9 @@ function Notes({
                                 );
 
 
-                            if (exists) {
+                            if (
+                                exists
+                            ) {
 
                                 return currentId;
 
@@ -274,6 +277,7 @@ function Notes({
                         "LOAD NOTES ERROR:",
                         error
                     );
+
 
                     setError(
                         error.message ||
@@ -345,7 +349,7 @@ function Notes({
 
 
     /* =====================================================
-       LOAD NOTE DETAIL / ATTACHMENTS
+       LOAD NOTE DETAIL
     ===================================================== */
 
     const loadNoteDetail =
@@ -389,6 +393,7 @@ function Notes({
                         error
                     );
 
+
                     setAttachments([]);
 
                 }
@@ -401,7 +406,7 @@ function Notes({
 
 
     /* =====================================================
-       WHEN SELECTED NOTE CHANGES
+       SELECT NOTE
     ===================================================== */
 
     useEffect(
@@ -429,10 +434,12 @@ function Notes({
                 ""
             );
 
+
             setContent(
                 selectedNote.content ||
                 ""
             );
+
 
             setEditorDirty(
                 false
@@ -445,7 +452,9 @@ function Notes({
 
         },
         [
-            selectedNoteId
+            selectedNoteId,
+            selectedNote,
+            loadNoteDetail
         ]
     );
 
@@ -506,11 +515,14 @@ function Notes({
                 newNote.id
             );
 
+
             setTitle("");
 
             setContent("");
 
             setAttachments([]);
+
+            setEditorDirty(false);
 
         } catch (error) {
 
@@ -518,6 +530,7 @@ function Notes({
                 "CREATE NOTE ERROR:",
                 error
             );
+
 
             setError(
                 error.message ||
@@ -599,9 +612,7 @@ function Notes({
             );
 
 
-            setEditorDirty(
-                false
-            );
+            setEditorDirty(false);
 
         } catch (error) {
 
@@ -609,6 +620,7 @@ function Notes({
                 "SAVE NOTE ERROR:",
                 error
             );
+
 
             setError(
                 error.message ||
@@ -733,6 +745,7 @@ function Notes({
                 error
             );
 
+
             setError(
                 error.message ||
                 "Không thể xóa ghi chú."
@@ -799,6 +812,7 @@ function Notes({
                 error
             );
 
+
             setError(
                 error.message ||
                 "Không thể ghim ghi chú."
@@ -860,6 +874,7 @@ function Notes({
                 "FAVORITE NOTE ERROR:",
                 error
             );
+
 
             setError(
                 error.message ||
@@ -978,6 +993,7 @@ function Notes({
                 error
             );
 
+
             setError(
                 error.message ||
                 "Không thể tải file lên."
@@ -1086,6 +1102,7 @@ function Notes({
                 error
             );
 
+
             setError(
                 error.message ||
                 "Không thể xóa file."
@@ -1158,44 +1175,6 @@ function Notes({
        FILE HELPERS
     ===================================================== */
 
-    function getFileUrl(
-        fileUrl
-    ) {
-
-        if (
-            !fileUrl
-        ) {
-
-            return "";
-
-        }
-
-
-        if (
-            fileUrl.startsWith(
-                "http://"
-            ) ||
-            fileUrl.startsWith(
-                "https://"
-            )
-        ) {
-
-            return fileUrl;
-
-        }
-
-
-        return (
-            apiUrl.replace(
-                /\/$/,
-                ""
-            ) +
-            fileUrl
-        );
-
-    }
-
-
     function isImage(
         attachment
     ) {
@@ -1216,7 +1195,10 @@ function Notes({
     ) {
 
         const size =
-            Number(bytes || 0);
+            Number(
+                bytes ||
+                0
+            );
 
 
         if (
@@ -1240,10 +1222,148 @@ function Notes({
         }
 
 
+        if (
+            size < 1024 * 1024 * 1024
+        ) {
+
+            return `${(
+                size /
+                (1024 * 1024)
+            ).toFixed(1)} MB`;
+
+        }
+
+
         return `${(
             size /
-            (1024 * 1024)
-        ).toFixed(1)} MB`;
+            (1024 * 1024 * 1024)
+        ).toFixed(1)} GB`;
+
+    }
+
+
+    /* =====================================================
+       ATTACHMENT URL
+    ===================================================== */
+
+    function getAttachmentUrl(
+        attachment
+    ) {
+
+        return (
+            `${apiUrl}/api/notes/${selectedNoteId}/attachments/${attachment.id}/file`
+        );
+
+    }
+
+
+    /* =====================================================
+       IMAGE GALLERY
+    ===================================================== */
+
+    function renderImageGallery(
+        imageAttachments
+    ) {
+
+        if (
+            !imageAttachments.length
+        ) {
+
+            return null;
+
+        }
+
+
+        const count =
+            imageAttachments.length;
+
+
+        return (
+            <div
+                className={
+                    `notes-image-gallery notes-image-gallery-${Math.min(
+                        count,
+                        5
+                    )}`
+                }
+            >
+
+                {imageAttachments
+                    .slice(
+                        0,
+                        5
+                    )
+                    .map(
+                        (
+                            attachment,
+                            index
+                        ) => {
+
+                            const url =
+                                getAttachmentUrl(
+                                    attachment
+                                );
+
+
+                            const remaining =
+                                count -
+                                5;
+
+
+                            return (
+                                <button
+                                    key={
+                                        attachment.id
+                                    }
+                                    type="button"
+                                    className={
+                                        `notes-image-gallery-item ${
+                                            index === 0
+                                                ? "is-main"
+                                                : ""
+                                        }`
+                                    }
+                                    onClick={() =>
+                                        setPreviewImage(
+                                            {
+                                                url,
+                                                name:
+                                                    attachment.file_name
+                                            }
+                                        )
+                                    }
+                                >
+
+                                    <img
+                                        src={
+                                            url
+                                        }
+                                        alt={
+                                            attachment.file_name
+                                        }
+                                        loading="lazy"
+                                    />
+
+
+                                    {index === 4 &&
+                                        remaining > 0 && (
+
+                                            <span
+                                                className="notes-image-more"
+                                            >
+                                                +{remaining}
+                                            </span>
+
+                                        )}
+
+                                </button>
+                            );
+
+                        }
+                    )}
+
+            </div>
+        );
 
     }
 
@@ -1265,7 +1385,9 @@ function Notes({
                     className="notes-loading"
                 >
 
-                    <div className="notes-loading-icon">
+                    <div
+                        className="notes-loading-icon"
+                    >
                         📝
                     </div>
 
@@ -1310,6 +1432,7 @@ function Notes({
                         🔎
                     </span>
 
+
                     <input
                         type="text"
                         value={
@@ -1324,6 +1447,7 @@ function Notes({
                         }
                         placeholder="Tìm kiếm ghi chú..."
                     />
+
 
                     {search && (
 
@@ -1351,11 +1475,13 @@ function Notes({
                         saving
                     }
                 >
+
                     <span>
                         ＋
                     </span>
 
                     Ghi chú mới
+
                 </button>
 
             </div>
@@ -1437,9 +1563,11 @@ function Notes({
                         ⚠️
                     </span>
 
+
                     <span>
                         {error}
                     </span>
+
 
                     <button
                         type="button"
@@ -1471,7 +1599,9 @@ function Notes({
                         📝
                     </div>
 
+
                     <h2>
+
                         {search
                             ? "Không tìm thấy ghi chú"
                             : filter === "pinned"
@@ -1479,13 +1609,18 @@ function Notes({
                                 : filter === "favorite"
                                     ? "Chưa có ghi chú yêu thích"
                                     : "Chưa có ghi chú"}
+
                     </h2>
 
+
                     <p>
+
                         {search
                             ? "Thử tìm kiếm với từ khóa khác."
                             : "Tạo một ghi chú mới để bắt đầu lưu giữ những điều quan trọng."}
+
                     </p>
+
 
                     {!search &&
                         filter === "all" && (
@@ -1524,6 +1659,7 @@ function Notes({
                             <strong>
                                 Ghi chú của tôi
                             </strong>
+
 
                             <span>
                                 {notes.length}
@@ -1576,12 +1712,15 @@ function Notes({
                                                         "Ghi chú không có tiêu đề"}
                                                 </strong>
 
+
                                                 <div>
+
                                                     {note.is_pinned && (
                                                         <span>
                                                             📌
                                                         </span>
                                                     )}
+
 
                                                     {note.is_favorite && (
                                                         <span>
@@ -1696,7 +1835,7 @@ function Notes({
                             <>
 
                                 {/* =====================================
-                                    EDITOR HEADER
+                                    HEADER
                                 ===================================== */}
 
                                 <div
@@ -1711,7 +1850,9 @@ function Notes({
                                             📝 Ghi chú
                                         </div>
 
+
                                         <span>
+
                                             {saving
                                                 ? "Đang lưu..."
                                                 : editorDirty
@@ -1719,6 +1860,7 @@ function Notes({
                                                     : `Cập nhật ${formatDate(
                                                         selectedNote.updated_at
                                                     )}`}
+
                                         </span>
 
                                     </div>
@@ -1841,6 +1983,7 @@ function Notes({
                                                 📎 Tệp đính kèm
                                             </strong>
 
+
                                             <span>
                                                 {attachments.length} tệp
                                             </span>
@@ -1857,9 +2000,11 @@ function Notes({
                                                 uploading
                                             }
                                         >
+
                                             {uploading
                                                 ? "Đang tải..."
                                                 : "＋ Thêm ảnh / file"}
+
                                         </button>
 
                                     </div>
@@ -1871,6 +2016,7 @@ function Notes({
                                         }
                                         type="file"
                                         multiple
+                                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
                                         onChange={
                                             uploadFiles
                                         }
@@ -1888,144 +2034,153 @@ function Notes({
                                                 🖼️
                                             </span>
 
+
                                             <div>
+
                                                 <strong>
                                                     Chưa có tệp đính kèm
                                                 </strong>
 
+
                                                 <small>
                                                     Bạn có thể tải ảnh hoặc file lên ghi chú này.
                                                 </small>
+
                                             </div>
 
                                         </div>
 
                                     ) : (
 
-                                        <div
-                                            className="notes-attachment-grid"
-                                        >
+                                        <>
 
-                                            {attachments.map(
-                                                (
-                                                    attachment
-                                                ) => {
+                                            {/* =================================
+                                                IMAGE GALLERY
+                                            ================================= */}
 
-                                                    const url =
-    `${apiUrl}/api/notes/${selectedNoteId}/attachments/${attachment.id}/file`;
-
-
-                                                    return (
-                                                        <div
-                                                            key={
-                                                                attachment.id
-                                                            }
-                                                            className={
-                                                                isImage(
-                                                                    attachment
-                                                                )
-                                                                    ? "notes-attachment image"
-                                                                    : "notes-attachment file"
-                                                            }
-                                                        >
-
-                                                            {isImage(
-                                                                attachment
-                                                            ) ? (
-
-                                                                <button
-                                                                    type="button"
-                                                                    className="notes-image-preview"
-                                                                    onClick={() =>
-                                                                        setPreviewImage(
-                                                                            {
-                                                                                url,
-                                                                                name:
-                                                                                    attachment.file_name
-                                                                            }
-                                                                        )
-                                                                    }
-                                                                >
-
-                                                                    <img
-                                                                        src={
-                                                                            url
-                                                                        }
-                                                                        alt={
-                                                                            attachment.file_name
-                                                                        }
-                                                                    />
-
-                                                                    <span>
-                                                                        🔍
-                                                                    </span>
-
-                                                                </button>
-
-                                                            ) : (
-
-                                                                <a
-                                                                    href={
-                                                                        url
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className="notes-file-preview"
-                                                                >
-
-                                                                    <span>
-                                                                        📄
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {attachment.file_name}
-                                                                    </strong>
-
-                                                                    <small>
-                                                                        {formatFileSize(
-                                                                            attachment.file_size
-                                                                        )}
-                                                                    </small>
-
-                                                                </a>
-
-                                                            )}
-
-
-                                                            <div
-                                                                className="notes-attachment-footer"
-                                                            >
-
-                                                                <span
-                                                                    title={
-                                                                        attachment.file_name
-                                                                    }
-                                                                >
-                                                                    {attachment.file_name}
-                                                                </span>
-
-
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        deleteAttachment(
-                                                                            attachment
-                                                                        )
-                                                                    }
-                                                                    title="Xóa file"
-                                                                >
-                                                                    🗑️
-                                                                </button>
-
-                                                            </div>
-
-                                                        </div>
-                                                    );
-
-                                                }
+                                            {renderImageGallery(
+                                                attachments.filter(
+                                                    (attachment) =>
+                                                        isImage(
+                                                            attachment
+                                                        )
+                                                )
                                             )}
 
-                                        </div>
+
+                                            {/* =================================
+                                                OTHER FILES
+                                            ================================= */}
+
+                                            {attachments.some(
+                                                (attachment) =>
+                                                    !isImage(
+                                                        attachment
+                                                    )
+                                            ) && (
+
+                                                <div
+                                                    className="notes-file-attachments"
+                                                >
+
+                                                    {attachments
+                                                        .filter(
+                                                            (attachment) =>
+                                                                !isImage(
+                                                                    attachment
+                                                                )
+                                                        )
+                                                        .map(
+                                                            (
+                                                                attachment
+                                                            ) => {
+
+                                                                const url =
+                                                                    getAttachmentUrl(
+                                                                        attachment
+                                                                    );
+
+
+                                                                return (
+                                                                    <div
+                                                                        key={
+                                                                            attachment.id
+                                                                        }
+                                                                        className="notes-attachment file"
+                                                                    >
+
+                                                                        <a
+                                                                            href={
+                                                                                url
+                                                                            }
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="notes-file-preview"
+                                                                        >
+
+                                                                            <span>
+                                                                                📄
+                                                                            </span>
+
+
+                                                                            <strong>
+                                                                                {
+                                                                                    attachment.file_name
+                                                                                }
+                                                                            </strong>
+
+
+                                                                            <small>
+                                                                                {
+                                                                                    formatFileSize(
+                                                                                        attachment.file_size
+                                                                                    )
+                                                                                }
+                                                                            </small>
+
+                                                                        </a>
+
+
+                                                                        <div
+                                                                            className="notes-attachment-footer"
+                                                                        >
+
+                                                                            <span
+                                                                                title={
+                                                                                    attachment.file_name
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    attachment.file_name
+                                                                                }
+                                                                            </span>
+
+
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    deleteAttachment(
+                                                                                        attachment
+                                                                                    )
+                                                                                }
+                                                                                title="Xóa file"
+                                                                            >
+                                                                                🗑️
+                                                                            </button>
+
+                                                                        </div>
+
+                                                                    </div>
+                                                                );
+
+                                                            }
+                                                        )}
+
+                                                </div>
+
+                                            )}
+
+                                        </>
 
                                     )}
 
@@ -2033,7 +2188,7 @@ function Notes({
 
 
                                 {/* =====================================
-                                    ACTIONS
+                                    FOOTER
                                 ===================================== */}
 
                                 <div
@@ -2045,6 +2200,7 @@ function Notes({
                                         <span>
                                             {content.length} ký tự
                                         </span>
+
 
                                         {attachments.length > 0 && (
 
@@ -2090,9 +2246,11 @@ function Notes({
                                                 !editorDirty
                                             }
                                         >
+
                                             {saving
                                                 ? "Đang lưu..."
                                                 : "💾 Lưu ghi chú"}
+
                                         </button>
 
                                     </div>
@@ -2111,9 +2269,11 @@ function Notes({
                                     📝
                                 </div>
 
+
                                 <h2>
                                     Chọn một ghi chú
                                 </h2>
+
 
                                 <p>
                                     Chọn ghi chú ở bên trái hoặc tạo ghi chú mới.
